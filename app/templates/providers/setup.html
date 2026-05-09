@@ -1,0 +1,233 @@
+{% extends "shared/base.html" %}
+
+{% block title %}Provider Setup - ThirdParty Access{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-50 flex flex-col">
+    {% include "shared/navbar.html" %}
+
+    <div class="container mx-auto px-4 py-8 flex-1">
+        <div class="max-w-2xl mx-auto bg-white rounded-lg shadow border border-gray-200 p-8">
+            <h1 class="text-3xl font-bold mb-2">Provider Profile Setup</h1>
+            <p class="text-gray-600 mb-8">Configure your professional access profile</p>
+
+            {% if error %}
+            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">{{ error }}</div>
+            {% endif %}
+
+            <form method="POST" class="space-y-6">
+                <div>
+                    <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Legal Name</label>
+                    <input id="title" name="title" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="e.g., Kondwani Kachamba, John Banda">
+                </div>
+
+                <div>
+                    <label for="expertise" class="block text-sm font-medium text-gray-700 mb-1">Specialization</label>
+                    <input id="expertise" name="expertise" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="e.g., Tech Recruitment, Leadership Development">
+                </div>
+
+                <div>
+                    <label for="phoneNumber" class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                    <input id="phoneNumber" name="phoneNumber" type="tel" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="+265 (999) 123-456">
+                </div>
+
+                <div>
+                    <label for="category" class="block text-sm font-medium text-gray-700 mb-1">Professional Category</label>
+                    <input id="category" name="category" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="e.g., Hiring, Mentoring, Entertainment">
+                </div>
+
+                <div>
+                    <label for="bio" class="block text-sm font-medium text-gray-700 mb-1">Professional Bio</label>
+                    <textarea id="bio" name="bio" rows="4" required
+                              class="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="Tell seekers about your background and what you offer..."></textarea>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="accessFee" class="block text-sm font-medium text-gray-700 mb-1">Access Fee in MWK (per request)</label>
+                        <input id="accessFee" name="accessFee" type="number" min="0" step="0.01" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               placeholder="e.g., MWK2,000">
+                    </div>
+                </div>
+
+                <!-- ═══ OFFERED BENEFITS SECTION ═══ -->
+                <div class="border border-indigo-200 rounded-lg overflow-hidden">
+                    <div class="bg-indigo-50 px-4 py-3 border-b border-indigo-200">
+                        <h3 class="font-bold text-indigo-800 text-sm"><i class="fas fa-gift mr-2"></i>Benefits You Offer (Value Vault)</h3>
+                        <p class="text-xs text-indigo-600 mt-1">Select the benefits seekers will receive when they pay your access fee. You'll fill in details when releasing each request.</p>
+                    </div>
+                    <div class="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <!-- Video Call Link -->
+                        <label class="flex items-start gap-3 p-3 rounded-lg border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 cursor-pointer transition">
+                            <input type="checkbox" name="benefit_video_call_link" value="1" class="mt-0.5 accent-indigo-600">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-video text-indigo-500 text-sm"></i>
+                                    <span class="font-medium text-sm text-gray-800">Video Call Link</span>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-0.5">Zoom, Google Meet, etc.</p>
+                            </div>
+                        </label>
+
+                        <!-- WhatsApp Link -->
+                        <label class="flex items-start gap-3 p-3 rounded-lg border border-gray-200 hover:border-green-300 hover:bg-green-50 cursor-pointer transition">
+                            <input type="checkbox" name="benefit_whatsapp_link" value="1" class="mt-0.5 accent-green-600">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <i class="fab fa-whatsapp text-green-500 text-sm"></i>
+                                    <span class="font-medium text-sm text-gray-800">WhatsApp Link</span>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-0.5">Direct WhatsApp chat link</p>
+                            </div>
+                        </label>
+
+                        <!-- Booked Chat -->
+                        <label class="flex items-start gap-3 p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition">
+                            <input type="checkbox" name="benefit_booked_chat" value="1" class="mt-0.5 accent-blue-600">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-comments text-blue-500 text-sm"></i>
+                                    <span class="font-medium text-sm text-gray-800">Booked Chat</span>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-0.5">Slack, Telegram, etc.</p>
+                            </div>
+                        </label>
+
+                        <!-- Appointment Details -->
+                        <label class="flex items-start gap-3 p-3 rounded-lg border border-gray-200 hover:border-orange-300 hover:bg-orange-50 cursor-pointer transition">
+                            <input type="checkbox" name="benefit_appointment_details" value="1" class="mt-0.5 accent-orange-600">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-calendar-check text-orange-500 text-sm"></i>
+                                    <span class="font-medium text-sm text-gray-800">Appointment</span>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-0.5">In-person or virtual meetings</p>
+                            </div>
+                        </label>
+
+                        <!-- Digital Product -->
+                        <label class="flex items-start gap-3 p-3 rounded-lg border border-gray-200 hover:border-purple-300 hover:bg-purple-50 cursor-pointer transition">
+                            <input type="checkbox" name="benefit_digital_product" value="1" class="mt-0.5 accent-purple-600">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-file-download text-purple-500 text-sm"></i>
+                                    <span class="font-medium text-sm text-gray-800">Digital Product</span>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-0.5">eBook, template, image, etc.</p>
+                            </div>
+                        </label>
+
+                        <!-- Exclusive Content -->
+                        <label class="flex items-start gap-3 p-3 rounded-lg border border-gray-200 hover:border-pink-300 hover:bg-pink-50 cursor-pointer transition">
+                            <input type="checkbox" name="benefit_exclusive_content" value="1" class="mt-0.5 accent-pink-600">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-lock-open text-pink-500 text-sm"></i>
+                                    <span class="font-medium text-sm text-gray-800">Exclusive Content</span>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-0.5">Members-only articles, videos</p>
+                            </div>
+                        </label>
+
+                        <!-- Shadowing Session -->
+                        <label class="flex items-start gap-3 p-3 rounded-lg border border-gray-200 hover:border-teal-300 hover:bg-teal-50 cursor-pointer transition">
+                            <input type="checkbox" name="benefit_shadowing_session" value="1" class="mt-0.5 accent-teal-600">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-user-friends text-teal-500 text-sm"></i>
+                                    <span class="font-medium text-sm text-gray-800">Shadowing Session</span>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-0.5">Observe the provider at work</p>
+                            </div>
+                        </label>
+
+                        <!-- Network Fast-Pass -->
+                        <label class="flex items-start gap-3 p-3 rounded-lg border border-gray-200 hover:border-amber-300 hover:bg-amber-50 cursor-pointer transition">
+                            <input type="checkbox" name="benefit_network_fast_pass" value="1" class="mt-0.5 accent-amber-600">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-network-wired text-amber-500 text-sm"></i>
+                                    <span class="font-medium text-sm text-gray-800">Network Fast-Pass</span>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-0.5">Introductions to contacts</p>
+                            </div>
+                        </label>
+
+                        <!-- Micro-Consultation -->
+                        <label class="flex items-start gap-3 p-3 rounded-lg border border-gray-200 hover:border-cyan-300 hover:bg-cyan-50 cursor-pointer transition">
+                            <input type="checkbox" name="benefit_micro_consultation" value="1" class="mt-0.5 accent-cyan-600">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-headset text-cyan-500 text-sm"></i>
+                                    <span class="font-medium text-sm text-gray-800">Micro-Consultation</span>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-0.5">Quick 15-min follow-up</p>
+                            </div>
+                        </label>
+
+                        <!-- Personalized Resources -->
+                        <label class="flex items-start gap-3 p-3 rounded-lg border border-gray-200 hover:border-lime-300 hover:bg-lime-50 cursor-pointer transition">
+                            <input type="checkbox" name="benefit_personalized_resources" value="1" class="mt-0.5 accent-lime-600">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-book-open text-lime-600 text-sm"></i>
+                                    <span class="font-medium text-sm text-gray-800">Curated Resources</span>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-0.5">Tools, articles, reading lists</p>
+                            </div>
+                        </label>
+
+                        <!-- DarkWeb Access -->
+                        <label class="flex items-start gap-3 p-3 rounded-lg benefit-darkweb cursor-pointer transition hover:scale-[1.02] col-span-1 sm:col-span-2">
+                            <input type="checkbox" name="benefit_darkweb_access" value="1" class="mt-1 accent-purple-500">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <i class="fas fa-mask benefit-icon text-base"></i>
+                                    <span class="font-bold text-sm benefit-label">DarkWeb</span>
+                                    <span class="hot-tag hot-tag-dark"><i class="fas fa-fire" style="font-size:8px;"></i> HOT</span>
+                                </div>
+                                <p class="text-xs benefit-desc mt-1">Private encrypted portals, onion links & hidden channels. Share exclusive deep-access resources with seekers through secure, anonymous pathways.</p>
+                            </div>
+                        </label>
+
+                        <!-- Forex Exchange -->
+                        <label class="flex items-start gap-3 p-3 rounded-lg benefit-forex cursor-pointer transition hover:scale-[1.02] col-span-1 sm:col-span-2">
+                            <input type="checkbox" name="benefit_forex_exchange" value="1" class="mt-1 accent-emerald-400">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <i class="fas fa-coins benefit-icon text-base"></i>
+                                    <span class="font-bold text-sm benefit-label">Forex</span>
+                                    <span class="hot-tag hot-tag-forex"><i class="fas fa-fire" style="font-size:8px;"></i> HOT</span>
+                                </div>
+                                <p class="text-xs benefit-desc mt-1">Currency exchange, private trading rates & asset deals. Connect seekers with exclusive market opportunities and direct settlement channels.</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="bg-blue-50 border border-blue-200 p-4 rounded-md">
+                    <p class="text-sm text-gray-700">
+                        <strong> How it works:</strong> When someone requests access to your contact details, they'll pay your access fee in MWK. You'll receive {{ "%.0f"|format(split.providerPercentage) }}% of the fee, and ThirdParty Access keeps {{ "%.0f"|format(split.platformPercentage) }}% to maintain the platform. After payment, you release your contact details along with any benefits you've selected above.
+                    </p>
+                </div>
+
+                <button type="submit"
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition">
+                    Complete Setup
+                </button>
+            </form>
+        </div>
+    </div>
+    {% include "shared/footer.html" %}
+</div>
+{% endblock %}

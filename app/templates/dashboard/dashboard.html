@@ -1,0 +1,241 @@
+{% extends "shared/base.html" %}
+
+{% block title %}Dashboard - ThirdParty Access{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-50 flex flex-col">
+    {% include "shared/navbar.html" %}
+
+    <div class="container mx-auto px-4 py-8 flex-1">
+        <!-- Welcome Banner -->
+        <div class="p-6 mb-8 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg shadow">
+            <h1 class="text-2xl font-bold mb-1">Welcome back, {{ user.firstName }}!</h1>
+            <p class="text-blue-100 text-sm">
+                {% if user.role == 'seeker' %}
+                Manage your access requests and view provider contacts.
+                {% else %}
+                Manage your profile and review incoming access requests.
+                {% endif %}
+            </p>
+            <div class="flex gap-4 mt-4 overflow-x-auto pb-2 -mx-2 px-2" style="-webkit-overflow-scrolling: touch; white-space: nowrap;">
+                <div class="bg-white/20 rounded-lg px-4 py-2 flex-shrink-0 min-w-[120px]">
+                    <p class="text-xs text-blue-100">Requests</p>
+                    <p class="text-2xl font-bold">{{ stats.requests }}</p>
+                </div>
+                <div class="bg-white/20 rounded-lg px-4 py-2 flex-shrink-0 min-w-[120px]">
+                    <p class="text-xs text-blue-100">{{ 'Value Vault' if user.role == 'seeker' else 'Seekers With Access' }}</p>
+                    <p class="text-2xl font-bold">{{ stats.grants }}</p>
+                </div>
+                <div class="bg-white/20 rounded-lg px-4 py-2 flex-shrink-0 min-w-[120px]">
+                    <p class="text-xs text-blue-100">{{ 'Payments Made' if user.role == 'seeker' else 'Payments Received' }}</p>
+                    <p class="text-2xl font-bold">{{ stats.payments }}</p>
+                </div>
+                {% if user.role == 'provider' %}
+                <div class="bg-white/20 rounded-lg px-4 py-2 flex-shrink-0 min-w-[140px]">
+                    <p class="text-xs text-blue-100">Balance (Your {{ "%.0f"|format(split.providerPercentage) }}%)</p>
+                    <p class="text-2xl font-bold">MWK {{ "{:,.0f}".format(balance.availableBalance) }}</p>
+                </div>
+                {% endif %}
+            </div>
+            {% if user.role == 'provider' %}
+            <p class="text-xs text-blue-200 mt-2 opacity-80"><i class="fas fa-info-circle mr-1"></i>Swipe to see all cards on mobile</p>
+            {% endif %}
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% if user.role == 'seeker' %}
+            <a href="{{ url_for('providers.search_page') }}" class="block no-underline">
+                <div class="bg-white rounded-lg shadow border border-gray-200 p-6 hover:shadow-lg transition cursor-pointer">
+                    <h2 class="text-2xl font-bold mb-2 text-gray-900"> Search Providers</h2>
+                    <p class="text-gray-600 mb-4">Find and connect with very important People</p>
+                    <span class="inline-block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition">Browse Professionals</span>
+                </div>
+            </a>
+
+            <a href="{{ url_for('requests.my_requests_page') }}" class="block no-underline">
+                <div class="bg-white rounded-lg shadow border border-gray-200 p-6 hover:shadow-lg transition cursor-pointer">
+                    <h2 class="text-2xl font-bold mb-2 text-gray-900"> My Requests</h2>
+                    <p class="text-gray-600 mb-4">Track your access requests and payments</p>
+                    <span class="inline-block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition">View Requests</span>
+                </div>
+            </a>
+
+            <a href="{{ url_for('access.my_access_page') }}" class="block no-underline">
+                <div class="bg-white rounded-lg shadow border-2 border-green-200 p-6 hover:shadow-lg transition cursor-pointer">
+                    <h2 class="text-2xl font-bold mb-2 text-gray-900"><i class="fas fa-vault text-indigo-500 mr-1"></i> Value Vault</h2>
+                    <div class="text-gray-600 mb-4">
+                        <div id="access-short-seeker" class="truncate">
+                            All unlocked benefits, contacts & resources in one place
+                        </div>
+                        <div id="access-full-seeker" class="hidden">
+                            All unlocked benefits, contacts & resources in one place
+                        </div>
+                        <button onclick="toggleAccessText('seeker')" id="access-btn-seeker" class="text-blue-600 hover:text-blue-800 font-medium mt-1 text-xs hidden">
+                            Read more
+                        </button>
+                    </div>
+                    <span class="inline-block w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition">Open Value Vault</span>
+                </div>
+            </a>
+
+            <a href="{{ url_for('payments.payment_history_page') }}" class="block no-underline">
+                <div class="bg-white rounded-lg shadow border border-purple-200 p-6 hover:shadow-lg transition cursor-pointer">
+                    <h2 class="text-2xl font-bold mb-2 text-gray-900"><i class="fas fa-receipt text-purple-500 mr-1"></i> Payment History</h2>
+                    <p class="text-gray-600 mb-4">View all your PayChangu payments and transaction records</p>
+                    <span class="inline-block w-full text-center bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition">View Payments</span>
+                </div>
+            </a>
+            {% else %}
+            <a href="{{ url_for('providers.setup_page') }}" class="block no-underline">
+                <div class="bg-white rounded-lg shadow border border-gray-200 p-6 hover:shadow-lg transition cursor-pointer">
+                    <h2 class="text-2xl font-bold mb-2 text-gray-900"> Profile Setup</h2>
+                    <p class="text-gray-600 mb-4">Configure your provider profile</p>
+                    <span class="inline-block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition">Edit Profile</span>
+                </div>
+            </a>
+
+            <!-- Verification Card -->
+            <a href="{{ url_for('providers.verify_page') }}" class="block no-underline">
+                <div class="bg-white rounded-lg shadow border-2 {{ 'border-yellow-300' if provider and provider.verified else 'border-gray-200' }} p-6 hover:shadow-lg transition cursor-pointer">
+                    {% if provider and provider.verified %}
+                    <h2 class="text-2xl font-bold mb-2 text-gray-900"><i class="fas fa-check-circle text-yellow-500 mr-1"></i> Verified</h2>
+                    <p class="text-gray-600 mb-3">Your identity is verified with a gold badge.</p>
+                    <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-bold bg-yellow-100 text-yellow-800 border border-yellow-300">
+                        <i class="fas fa-check-circle"></i> Verified
+                    </span>
+                    {% elif provider and provider.verificationStatus == 'submitted' %}
+                    <h2 class="text-2xl font-bold mb-2 text-gray-900"><i class="fas fa-clock text-blue-500 mr-1"></i> Verification Pending</h2>
+                    <p class="text-gray-600 mb-3">Your documents are under admin review.</p>
+                    <span class="inline-block w-full text-center bg-blue-100 text-blue-700 font-medium py-2 px-4 rounded-md">Under Review</span>
+                    {% elif provider and provider.verificationStatus == 'rejected' %}
+                    <h2 class="text-2xl font-bold mb-2 text-gray-900"><i class="fas fa-exclamation-triangle text-red-500 mr-1"></i> Verification Rejected</h2>
+                    <p class="text-gray-600 mb-3">Your verification was not approved. Please re-submit.</p>
+                    <span class="inline-block w-full text-center bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md transition">Re-submit Documents</span>
+                    {% else %}
+                    <h2 class="text-2xl font-bold mb-2 text-gray-900"><i class="fas fa-shield-alt text-gray-400 mr-1"></i> Get Verified</h2>
+                    <p class="text-gray-600 mb-3">Verify your identity to earn a gold badge on your profile.</p>
+                    <span class="inline-block w-full text-center bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-2 px-4 rounded-md transition">Start Verification</span>
+                    {% endif %}
+                </div>
+            </a>
+
+            <a href="{{ url_for('requests.my_requests_page') }}" class="block no-underline">
+                <div class="bg-white rounded-lg shadow border border-gray-200 p-6 hover:shadow-lg transition cursor-pointer">
+                    <h2 class="text-2xl font-bold mb-2 text-gray-900"> Incoming Requests</h2>
+                    <p class="text-gray-600 mb-4">Review access requests from seekers</p>
+                    <span class="inline-block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition">Review Requests</span>
+                </div>
+            </a>
+
+            <a href="{{ url_for('access.my_access_page') }}" class="block no-underline">
+                <div class="bg-white rounded-lg shadow border-2 border-green-200 p-6 hover:shadow-lg transition cursor-pointer">
+                    <h2 class="text-2xl font-bold mb-2 text-gray-900"> Seekers With Access</h2>
+                    <div class="text-gray-600 mb-4">
+                        <div id="access-short-provider" class="truncate">
+                            See who has been granted access to your contacts
+                        </div>
+                        <div id="access-full-provider" class="hidden">
+                            See who has been granted access to your contacts
+                        </div>
+                        <button onclick="toggleAccessText('provider')" id="access-btn-provider" class="text-blue-600 hover:text-blue-800 font-medium mt-1 text-xs hidden">
+                            Read more
+                        </button>
+                    </div>
+                    <span class="inline-block w-full text-center bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition">View Access Grants</span>
+                </div>
+            </a>
+
+            <a href="{{ url_for('payments.wallet_page') }}" class="block no-underline">
+                <div class="bg-white rounded-lg shadow border-2 border-indigo-200 p-6 hover:shadow-lg transition cursor-pointer">
+                    <h2 class="text-2xl font-bold mb-2 text-gray-900"><i class="fas fa-wallet text-indigo-500 mr-1"></i> My Wallet</h2>
+                    <p class="text-gray-600 mb-2">Your {{ "%.0f"|format(split.providerPercentage) }}% earnings share &middot; Withdraw anytime</p>
+                    <p class="text-xl font-bold text-indigo-700 mb-3">MWK {{ "{:,.0f}".format(balance.availableBalance) }}</p>
+                    <span class="inline-block w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition">Open Wallet</span>
+                </div>
+            </a>
+
+            <a href="{{ url_for('payments.payment_history_page') }}" class="block no-underline">
+                <div class="bg-white rounded-lg shadow border border-purple-200 p-6 hover:shadow-lg transition cursor-pointer">
+                    <h2 class="text-2xl font-bold mb-2 text-gray-900"><i class="fas fa-receipt text-purple-500 mr-1"></i> Payment History</h2>
+                    <p class="text-gray-600 mb-4">View all payments received from seekers via PayChangu</p>
+                    <span class="inline-block w-full text-center bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition">View Payments</span>
+                </div>
+            </a>
+            {% endif %}
+        </div>
+
+        <!-- How It Works -->
+        <div class="bg-white rounded-lg shadow border border-gray-200 p-6 mt-8">
+            <h2 class="text-xl font-bold mb-4"> How ThirdParty Access Works</h2>
+            {% if user.role == 'seeker' %}
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="text-center p-4 bg-blue-50 rounded-lg">
+                    <div class="text-3xl mb-2"></div>
+                    <h3 class="font-semibold text-sm mb-1">1. Search</h3>
+                    <p class="text-xs text-gray-600">Find professionals by expertise</p>
+                </div>
+                <div class="text-center p-4 bg-blue-50 rounded-lg">
+                    <div class="text-3xl mb-2"></div>
+                    <h3 class="font-semibold text-sm mb-1">2. Request</h3>
+                    <p class="text-xs text-gray-600">Submit an access request with your purpose</p>
+                </div>
+                <div class="text-center p-4 bg-blue-50 rounded-lg">
+                    <div class="text-3xl mb-2"></div>
+                    <h3 class="font-semibold text-sm mb-1">3. Pay</h3>
+                    <p class="text-xs text-gray-600">Pay the access fee once approved</p>
+                </div>
+                <div class="text-center p-4 bg-green-50 rounded-lg">
+                    <div class="text-3xl mb-2"></div>
+                    <h3 class="font-semibold text-sm mb-1">4. Access</h3>
+                    <p class="text-xs text-gray-600">Receive contact details in your account</p>
+                </div>
+            </div>
+            {% else %}
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="text-center p-4 bg-green-50 rounded-lg">
+                    <div class="text-3xl mb-2"></div>
+                    <h3 class="font-semibold text-sm mb-1">1. Setup</h3>
+                    <p class="text-xs text-gray-600">Create your professional profile</p>
+                </div>
+                <div class="text-center p-4 bg-green-50 rounded-lg">
+                    <div class="text-3xl mb-2"></div>
+                    <h3 class="font-semibold text-sm mb-1">2. Receive</h3>
+                    <p class="text-xs text-gray-600">Get access requests from seekers</p>
+                </div>
+                <div class="text-center p-4 bg-green-50 rounded-lg">
+                    <div class="text-3xl mb-2"></div>
+                    <h3 class="font-semibold text-sm mb-1">3. Approve</h3>
+                    <p class="text-xs text-gray-600">Review and approve/reject requests</p>
+                </div>
+                <div class="text-center p-4 bg-green-50 rounded-lg">
+                    <div class="text-3xl mb-2"></div>
+                    <h3 class="font-semibold text-sm mb-1">4. Release</h3>
+                    <p class="text-xs text-gray-600">Release contact details after payment</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% include "shared/footer.html" %}
+</div>
+
+{% block scripts %}
+<script>
+function toggleAccessText(type) {
+    const shortEl = document.getElementById('access-short-' + type);
+    const fullEl = document.getElementById('access-full-' + type);
+    const btn = document.getElementById('access-btn-' + type);
+    
+    if (fullEl.classList.contains('hidden')) {
+        fullEl.classList.remove('hidden');
+        shortEl.classList.add('hidden');
+        btn.textContent = 'Read less';
+    } else {
+        fullEl.classList.add('hidden');
+        shortEl.classList.remove('hidden');
+        btn.textContent = 'Read more';
+    }
+}
+</script>
+{% endblock %}
+{% endblock %}

@@ -1,0 +1,582 @@
+{% extends "shared/base.html" %}
+
+{% block title %}Request Details - ThirdParty Access{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-50 flex flex-col">
+    {% include "shared/navbar.html" %}
+
+    <div class="container mx-auto px-4 py-8 flex-1">
+        {% if not req %}
+        <div class="bg-white rounded-lg shadow border border-gray-200 p-8 text-center">
+            <p class="text-gray-500">Request not found.</p>
+        </div>
+        {% else %}
+        <div class="bg-white rounded-lg shadow border border-gray-200 p-8 max-w-3xl mx-auto">
+            <h1 class="text-3xl font-bold mb-6">Request Details</h1>
+
+            <!-- People involved -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p class="text-xs text-blue-600 font-medium mb-1">SEEKER</p>
+                    <p class="font-semibold">{{ req.seekerName or 'Unknown' }}</p>
+                    {% if user.role == 'provider' and req.seekerEmail %}
+                    <p class="text-sm text-gray-600">{{ req.seekerEmail }}</p>
+                    {% endif %}
+                </div>
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <p class="text-xs text-green-600 font-medium mb-1">PROVIDER</p>
+                    <p class="font-semibold">{{ req.providerTitle or 'Unknown' }}</p>
+                    <p class="text-sm text-gray-600">{{ req.providerName or '' }}</p>
+                </div>
+            </div>
+
+            <div class="space-y-4 mb-8">
+                <div>
+                    <label class="text-gray-500 text-xs uppercase font-medium">Purpose</label>
+                    <p class="text-lg font-semibold">{{ req.purpose }}</p>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="text-gray-500 text-xs uppercase font-medium">Status</label>
+                        <p class="text-lg font-semibold capitalize">{{ req.status }}</p>
+                    </div>
+                    <div>
+                        <label class="text-gray-500 text-xs uppercase font-medium">Access Fee</label>
+                        <p class="text-lg font-semibold">MWK {{ req.accessFee or 'N/A' }}</p>
+                    </div>
+                    <div>
+                        <label class="text-gray-500 text-xs uppercase font-medium">Fee Status</label>
+                        <p class="text-lg font-semibold capitalize">{{ req.accessFeeStatus }}</p>
+                    </div>
+                </div>
+
+                <!-- Show released contact details + benefits -->
+                {% if req.contactEmail %}
+                <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+                    <h3 class="font-bold text-green-800 mb-3"><i class="fas fa-gift mr-1"></i> Released Benefits</h3>
+                    <div class="space-y-2">
+                        <p class="text-green-700"><strong>Email:</strong> {{ req.contactEmail }}</p>
+                        {% if req.contactPhone %}
+                        <p class="text-green-700"><strong>Phone:</strong> {{ req.contactPhone }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Show released benefit items -->
+                    {% if req.releasedData %}
+                    <div class="mt-4 space-y-3">
+                        {% set benefit_display = {
+                            'video_call_link': {'icon': 'fas fa-video', 'color': 'indigo', 'label': 'Video Call'},
+                            'whatsapp_link': {'icon': 'fab fa-whatsapp', 'color': 'green', 'label': 'WhatsApp Link'},
+                            'booked_chat': {'icon': 'fas fa-comments', 'color': 'blue', 'label': 'Booked Chat'},
+                            'appointment_details': {'icon': 'fas fa-calendar-check', 'color': 'orange', 'label': 'Appointment'},
+                            'digital_product': {'icon': 'fas fa-file-download', 'color': 'purple', 'label': 'Digital Product'},
+                            'exclusive_content': {'icon': 'fas fa-lock-open', 'color': 'pink', 'label': 'Exclusive Content'},
+                            'shadowing_session': {'icon': 'fas fa-user-friends', 'color': 'teal', 'label': 'Shadowing Session'},
+                            'network_fast_pass': {'icon': 'fas fa-network-wired', 'color': 'amber', 'label': 'Network Fast-Pass'},
+                            'micro_consultation': {'icon': 'fas fa-headset', 'color': 'cyan', 'label': 'Micro-Consultation'},
+                            'personalized_resources': {'icon': 'fas fa-book-open', 'color': 'lime', 'label': 'Curated Resources'}
+                        } %}
+                        {% for key, data in req.releasedData.items() %}
+                            {% if key == 'darkweb_access' %}
+                            <div class="vault-darkweb rounded-lg p-3">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <i class="fas fa-mask text-purple-400" style="filter: drop-shadow(0 0 4px rgba(168,85,247,0.5));"></i>
+                                    <span class="font-bold text-sm" style="color:#e0d0ff;">DarkWeb Access</span>
+                                    <span class="hot-tag hot-tag-dark"><i class="fas fa-fire" style="font-size:8px;"></i> HOT</span>
+                                </div>
+                                <div class="text-sm pl-6 space-y-0.5" style="color:#c4b5fd;">
+                                    {% for field_key, field_val in data.items() %}
+                                    <p><span style="color:#a78bfa;" class="capitalize">{{ field_key|replace('_', ' ')|replace('darkweb ', '') }}:</span> 
+                                        {% if field_val.startswith('http') %}
+                                        <a href="{{ field_val }}" target="_blank" style="color:#c084fc;" class="hover:underline"><i class="fas fa-external-link-alt text-xs mr-0.5"></i> Access Portal</a>
+                                        {% else %}
+                                        {{ field_val }}
+                                        {% endif %}
+                                    </p>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% elif key == 'forex_exchange' %}
+                            <div class="vault-forex rounded-lg p-3">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <i class="fas fa-coins text-emerald-300" style="filter: drop-shadow(0 0 4px rgba(110,231,183,0.5));"></i>
+                                    <span class="font-bold text-sm" style="color:#d1fae5;">Forex Exchange</span>
+                                    <span class="hot-tag hot-tag-forex"><i class="fas fa-fire" style="font-size:8px;"></i> HOT</span>
+                                </div>
+                                <div class="text-sm pl-6 space-y-0.5" style="color:#a7f3d0;">
+                                    {% for field_key, field_val in data.items() %}
+                                    <p><span style="color:#6ee7b7;" class="capitalize">{{ field_key|replace('_', ' ')|replace('forex ', '') }}:</span> 
+                                        {% if field_val.startswith('http') %}
+                                        <a href="{{ field_val }}" target="_blank" style="color:#6ee7b7;" class="hover:underline"><i class="fas fa-external-link-alt text-xs mr-0.5"></i> Open Channel</a>
+                                        {% else %}
+                                        {{ field_val }}
+                                        {% endif %}
+                                    </p>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% elif key in benefit_display %}
+                            {% set meta = benefit_display[key] %}
+                            <div class="bg-white border border-green-100 rounded-lg p-3">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <i class="{{ meta.icon }} text-{{ meta.color }}-500"></i>
+                                    <span class="font-semibold text-sm text-gray-800">{{ meta.label }}</span>
+                                </div>
+                                <div class="text-sm text-gray-700 pl-6 space-y-0.5">
+                                    {% for field_key, field_val in data.items() %}
+                                    <p><span class="text-gray-500 capitalize">{{ field_key|replace('_', ' ') }}:</span> 
+                                        {% if field_val.startswith('http') %}
+                                        <a href="{{ field_val }}" target="_blank" class="text-blue-600 hover:underline">{{ field_val }}</a>
+                                        {% else %}
+                                        {{ field_val }}
+                                        {% endif %}
+                                    </p>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    {% if user.role == 'seeker' %}
+                    <div class="flex flex-wrap gap-2 mt-4">
+                        {% if req.contactPhone %}
+                        {% set clean_phone = req.contactPhone|replace(' ', '')|replace('-', '')|replace('(', '')|replace(')', '') %}
+                        {% set wa_phone = clean_phone if clean_phone.startswith('+') else ('+265' ~ clean_phone if not clean_phone.startswith('265') else '+' ~ clean_phone) %}
+                        <a href="https://wa.me/{{ wa_phone|replace('+', '') }}" target="_blank"
+                           class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition no-underline text-sm shadow">
+                            <i class="fab fa-whatsapp text-lg"></i> WhatsApp Provider
+                        </a>
+                        {% endif %}
+                        <a href="mailto:{{ req.contactEmail }}" 
+                           class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition no-underline text-sm shadow">
+                            <i class="fas fa-envelope"></i> Send Email
+                        </a>
+                    </div>
+                    <p class="text-xs text-green-600 mt-3">
+                        These details are also saved in your <a href="{{ url_for('access.my_access_page') }}" class="underline font-medium">Value Vault</a>.
+                    </p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Provider Actions: Approve/Reject -->
+            {% if user.role == 'provider' and req.status == 'pending' %}
+            <div class="flex gap-4 mb-8">
+                <form method="POST" class="inline">
+                    <input type="hidden" name="action" value="approve">
+                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition">
+                         Approve Request
+                    </button>
+                </form>
+                <form method="POST" class="inline">
+                    <input type="hidden" name="action" value="reject">
+                    <button type="submit" class="border border-red-300 text-red-700 font-medium py-2 px-4 rounded-md hover:bg-red-50 transition">
+                         Reject Request
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+
+            <!-- Seeker Action: Pay Fee via PayChangu -->
+            {% if user.role == 'seeker' and req.status == 'approved' and req.accessFeeStatus == 'pending' %}
+            <div class="bg-yellow-50 border border-yellow-200 p-6 rounded-lg mb-8">
+                <h3 class="font-bold text-yellow-800 mb-2"><i class="fas fa-credit-card mr-1"></i> Payment Required</h3>
+                <p class="text-yellow-700 mb-4 text-sm">
+                    Your request has been approved! Pay the access fee of <strong>MWK {{ req.accessFee|int or 'N/A' }}</strong> to receive the provider's contact details and benefits.
+                </p>
+
+                <!-- Accepted Payment Methods -->
+                <div class="bg-white rounded-lg p-4 mb-4 border border-yellow-100">
+                    <p class="text-xs text-gray-500 font-medium mb-2">ACCEPTED PAYMENT METHODS</p>
+                    <div class="flex flex-wrap gap-3 items-center">
+                        <div class="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-1.5">
+                            <img src="{{ url_for('static', filename='payments/airtel-money-logo.png') }}" alt="Airtel Money" class="h-6 w-auto object-contain">
+                            <span class="text-xs font-medium text-red-700">Airtel Money</span>
+                        </div>
+                        <div class="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-1.5">
+                            <img src="{{ url_for('static', filename='payments/mpamba-logo.png') }}" alt="TNM Mpamba" class="h-6 w-auto object-contain">
+                            <span class="text-xs font-medium text-green-700">TNM Mpamba</span>
+                        </div>
+                        <div class="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-1.5">
+                            <i class="fas fa-university text-emerald-600"></i>
+                            <span class="text-xs font-medium text-emerald-700">Bank Transfer</span>
+                        </div>
+                        <div class="flex items-center gap-2 bg-purple-50 border border-purple-200 rounded-lg px-3 py-1.5">
+                            <i class="fab fa-cc-visa text-purple-600 text-lg"></i>
+                            <span class="text-xs font-medium text-purple-700">Visa/Mastercard</span>
+                        </div>
+                    </div>
+                </div>
+
+                <form action="{{ url_for('payments.initiate_payment_page', request_id=req.id) }}" method="POST">
+                    <button type="submit"
+                            class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition shadow-lg flex items-center justify-center gap-2"
+                            onclick="this.disabled=true; this.innerHTML='<i class=\'fas fa-spinner fa-spin\'></i> Redirecting to PayChangu...'; this.form.submit();">
+                        <i class="fas fa-lock"></i>
+                        Pay MWK {{ req.accessFee|int }} via PayChangu
+                    </button>
+                </form>
+
+                <p class="text-xs text-gray-500 mt-3 text-center">
+                    <i class="fas fa-shield-alt mr-1"></i> Secured by PayChangu. You will be redirected to complete payment.
+                </p>
+            </div>
+            {% endif %}
+
+            <!-- Show payment info if payment exists -->
+            {% if req.accessFeeStatus == 'paid' and req.transactionId %}
+            <div class="bg-green-50 border border-green-200 p-4 rounded-lg mb-4">
+                <div class="flex items-center gap-2 mb-1">
+                    <i class="fas fa-check-circle text-green-600"></i>
+                    <span class="font-semibold text-green-800 text-sm">Payment Confirmed</span>
+                </div>
+                <p class="text-xs text-green-700">
+                    Paid via {{ req.paymentMethod or 'PayChangu' }} &middot; Ref: {{ req.transactionId }}
+                </p>
+                {% if user.role == 'provider' and req.providerShare %}
+                <div class="mt-2 bg-white rounded-lg p-3 border border-green-100">
+                    <p class="text-xs text-gray-500 mb-1">Revenue Split ({{ "%.0f"|format(100 - req.splitPercentage) }}/{{ "%.0f"|format(req.splitPercentage) }})</p>
+                    <div class="flex gap-4">
+                        <div>
+                            <p class="text-xs text-gray-400">Total Paid</p>
+                            <p class="font-semibold text-gray-800 text-sm">MWK {{ req.accessFee|int }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-400">Your Share</p>
+                            <p class="font-semibold text-green-700 text-sm">MWK {{ req.providerShare|int }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-400">Platform Share</p>
+                            <p class="font-semibold text-gray-500 text-sm">MWK {{ req.platformShare|int }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Provider Action: Release Contact + Benefits -->
+            {% if user.role == 'provider' and req.status == 'approved' and req.accessFeeStatus == 'paid' and not req.contactEmail %}
+            <div class="bg-blue-50 border border-blue-200 p-6 rounded-lg mb-8" id="release-prompt">
+                <h3 class="font-bold text-blue-800 mb-2"><i class="fas fa-gift mr-1"></i> Payment Received!</h3>
+                <p class="text-blue-700 mb-4 text-sm">
+                    The seeker has paid the access fee. Release your contact details and benefits to complete this request.
+                </p>
+                <button onclick="document.getElementById('release-prompt').classList.add('hidden'); document.getElementById('release-form').classList.remove('hidden');"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition">
+                    <i class="fas fa-lock-open mr-1"></i> Release Benefits
+                </button>
+            </div>
+
+            <!-- Enhanced Release Form -->
+            <div id="release-form" class="hidden bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+                <h2 class="font-bold text-lg mb-2"><i class="fas fa-gift mr-1"></i> Release Your Benefits</h2>
+                <p class="text-sm text-gray-600 mb-6">
+                    Fill in your contact details and any additional benefits. These will be shared with the seeker and saved in their Value Vault.
+                </p>
+                <form method="POST" class="space-y-5">
+                    <input type="hidden" name="action" value="release">
+
+                    <!-- Core Contact Details (always shown) -->
+                    <div class="bg-white rounded-lg p-4 border border-blue-100">
+                        <h3 class="font-semibold text-sm text-gray-800 mb-3"><i class="fas fa-address-card mr-1 text-blue-500"></i> Contact Details (Required)</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label for="contactEmail" class="block text-sm font-medium text-gray-700 mb-1">Email Address *</label>
+                                <input id="contactEmail" name="contactEmail" type="email" required
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                       placeholder="your-contact@example.com">
+                            </div>
+                            <div>
+                                <label for="contactPhone" class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                                <input id="contactPhone" name="contactPhone" type="tel"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                       placeholder="+265 999 123 456">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Benefit Sections based on provider's offered_benefits -->
+                    {% set benefits_config = {
+                        'video_call_link': {'icon': 'fas fa-video', 'color': 'indigo', 'label': 'Video Call Link'},
+                        'whatsapp_link': {'icon': 'fab fa-whatsapp', 'color': 'green', 'label': 'WhatsApp Link'},
+                        'booked_chat': {'icon': 'fas fa-comments', 'color': 'blue', 'label': 'Booked Chat / Conversation'},
+                        'appointment_details': {'icon': 'fas fa-calendar-check', 'color': 'orange', 'label': 'Appointment Details'},
+                        'digital_product': {'icon': 'fas fa-file-download', 'color': 'purple', 'label': 'Digital Product'},
+                        'exclusive_content': {'icon': 'fas fa-lock-open', 'color': 'pink', 'label': 'Exclusive Content'},
+                        'shadowing_session': {'icon': 'fas fa-user-friends', 'color': 'teal', 'label': 'Shadowing Session'},
+                        'network_fast_pass': {'icon': 'fas fa-network-wired', 'color': 'amber', 'label': 'Network Fast-Pass'},
+                        'micro_consultation': {'icon': 'fas fa-headset', 'color': 'cyan', 'label': 'Micro-Consultation Voucher'},
+                        'personalized_resources': {'icon': 'fas fa-book-open', 'color': 'lime', 'label': 'Personalized Resources'}
+                    } %}
+
+                    {% if req.providerBenefits %}
+                    <div class="space-y-3">
+                        <h3 class="font-semibold text-sm text-gray-800"><i class="fas fa-gift mr-1 text-indigo-500"></i> Additional Benefits</h3>
+
+                        <!-- Video Call Link -->
+                        {% if req.providerBenefits.get('video_call_link') %}
+                        <div class="bg-white rounded-lg p-4 border border-gray-200">
+                            <label class="flex items-center gap-2 mb-3 cursor-pointer">
+                                <input type="checkbox" name="release_video_call_link" value="1" class="accent-indigo-600"
+                                       onchange="document.getElementById('fields-video_call_link').classList.toggle('hidden')">
+                                <i class="fas fa-video text-indigo-500"></i>
+                                <span class="font-medium text-sm">Video Call Link</span>
+                            </label>
+                            <div id="fields-video_call_link" class="hidden space-y-2 pl-6">
+                                <input name="video_call_link" type="url" placeholder="https://zoom.us/j/..." class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <input name="video_call_time" type="text" placeholder="e.g., April 25, 2026 at 2:00 PM CAT" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- WhatsApp Link -->
+                        {% if req.providerBenefits.get('whatsapp_link') %}
+                        <div class="bg-white rounded-lg p-4 border border-gray-200">
+                            <label class="flex items-center gap-2 mb-3 cursor-pointer">
+                                <input type="checkbox" name="release_whatsapp_link" value="1" class="accent-green-600"
+                                       onchange="document.getElementById('fields-whatsapp_link').classList.toggle('hidden')">
+                                <i class="fab fa-whatsapp text-green-500"></i>
+                                <span class="font-medium text-sm">WhatsApp Link</span>
+                            </label>
+                            <div id="fields-whatsapp_link" class="hidden space-y-2 pl-6">
+                                <input name="whatsapp_link" type="url" placeholder="https://wa.me/265999123456" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Booked Chat -->
+                        {% if req.providerBenefits.get('booked_chat') %}
+                        <div class="bg-white rounded-lg p-4 border border-gray-200">
+                            <label class="flex items-center gap-2 mb-3 cursor-pointer">
+                                <input type="checkbox" name="release_booked_chat" value="1" class="accent-blue-600"
+                                       onchange="document.getElementById('fields-booked_chat').classList.toggle('hidden')">
+                                <i class="fas fa-comments text-blue-500"></i>
+                                <span class="font-medium text-sm">Booked Chat / Conversation</span>
+                            </label>
+                            <div id="fields-booked_chat" class="hidden space-y-2 pl-6">
+                                <input name="chat_platform" type="text" placeholder="Platform (e.g., Slack, Telegram)" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <input name="chat_handle" type="text" placeholder="Handle / Username" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <input name="chat_time" type="text" placeholder="Scheduled time (e.g., April 25 at 3 PM)" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Appointment Details -->
+                        {% if req.providerBenefits.get('appointment_details') %}
+                        <div class="bg-white rounded-lg p-4 border border-gray-200">
+                            <label class="flex items-center gap-2 mb-3 cursor-pointer">
+                                <input type="checkbox" name="release_appointment_details" value="1" class="accent-orange-600"
+                                       onchange="document.getElementById('fields-appointment_details').classList.toggle('hidden')">
+                                <i class="fas fa-calendar-check text-orange-500"></i>
+                                <span class="font-medium text-sm">Appointment Details</span>
+                            </label>
+                            <div id="fields-appointment_details" class="hidden space-y-2 pl-6">
+                                <input name="appointment_type" type="text" placeholder="Type (e.g., In-person meeting, Virtual)" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                                <input name="appointment_location" type="text" placeholder="Location / Meeting link" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                                <input name="appointment_time" type="text" placeholder="Date & Time" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Digital Product -->
+                        {% if req.providerBenefits.get('digital_product') %}
+                        <div class="bg-white rounded-lg p-4 border border-gray-200">
+                            <label class="flex items-center gap-2 mb-3 cursor-pointer">
+                                <input type="checkbox" name="release_digital_product" value="1" class="accent-purple-600"
+                                       onchange="document.getElementById('fields-digital_product').classList.toggle('hidden')">
+                                <i class="fas fa-file-download text-purple-500"></i>
+                                <span class="font-medium text-sm">Digital Product / File</span>
+                            </label>
+                            <div id="fields-digital_product" class="hidden space-y-2 pl-6">
+                                <input name="product_name" type="text" placeholder="Product name (e.g., Career Guide PDF)" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                <input name="product_url" type="url" placeholder="Download URL" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Exclusive Content -->
+                        {% if req.providerBenefits.get('exclusive_content') %}
+                        <div class="bg-white rounded-lg p-4 border border-gray-200">
+                            <label class="flex items-center gap-2 mb-3 cursor-pointer">
+                                <input type="checkbox" name="release_exclusive_content" value="1" class="accent-pink-600"
+                                       onchange="document.getElementById('fields-exclusive_content').classList.toggle('hidden')">
+                                <i class="fas fa-lock-open text-pink-500"></i>
+                                <span class="font-medium text-sm">Exclusive Content</span>
+                            </label>
+                            <div id="fields-exclusive_content" class="hidden space-y-2 pl-6">
+                                <input name="content_title" type="text" placeholder="Content title" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500">
+                                <input name="content_url" type="url" placeholder="Content URL" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-pink-500">
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Shadowing Session -->
+                        {% if req.providerBenefits.get('shadowing_session') %}
+                        <div class="bg-white rounded-lg p-4 border border-gray-200">
+                            <label class="flex items-center gap-2 mb-3 cursor-pointer">
+                                <input type="checkbox" name="release_shadowing_session" value="1" class="accent-teal-600"
+                                       onchange="document.getElementById('fields-shadowing_session').classList.toggle('hidden')">
+                                <i class="fas fa-user-friends text-teal-500"></i>
+                                <span class="font-medium text-sm">Shadowing Session</span>
+                            </label>
+                            <div id="fields-shadowing_session" class="hidden space-y-2 pl-6">
+                                <input name="session_duration" type="text" placeholder="Duration (e.g., 2 hours)" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                                <input name="session_date" type="text" placeholder="Date (e.g., May 1, 2026)" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                                <input name="session_location" type="text" placeholder="Location / Virtual link" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Network Fast-Pass -->
+                        {% if req.providerBenefits.get('network_fast_pass') %}
+                        <div class="bg-white rounded-lg p-4 border border-gray-200">
+                            <label class="flex items-center gap-2 mb-3 cursor-pointer">
+                                <input type="checkbox" name="release_network_fast_pass" value="1" class="accent-amber-600"
+                                       onchange="document.getElementById('fields-network_fast_pass').classList.toggle('hidden')">
+                                <i class="fas fa-network-wired text-amber-500"></i>
+                                <span class="font-medium text-sm">Network Fast-Pass</span>
+                            </label>
+                            <div id="fields-network_fast_pass" class="hidden space-y-2 pl-6">
+                                <textarea name="contact_names" rows="2" placeholder="Names of contacts you'll introduce (one per line)" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+                                <input name="intro_method" type="text" placeholder="How? (e.g., Email intro, Group chat, LinkedIn)" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Micro-Consultation -->
+                        {% if req.providerBenefits.get('micro_consultation') %}
+                        <div class="bg-white rounded-lg p-4 border border-gray-200">
+                            <label class="flex items-center gap-2 mb-3 cursor-pointer">
+                                <input type="checkbox" name="release_micro_consultation" value="1" class="accent-cyan-600"
+                                       onchange="document.getElementById('fields-micro_consultation').classList.toggle('hidden')">
+                                <i class="fas fa-headset text-cyan-500"></i>
+                                <span class="font-medium text-sm">Micro-Consultation Voucher</span>
+                            </label>
+                            <div id="fields-micro_consultation" class="hidden space-y-2 pl-6">
+                                <input name="consultation_duration" type="text" placeholder="Duration (e.g., 15 minutes)" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                <textarea name="consultation_notes" rows="2" placeholder="Any scheduling notes or instructions" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"></textarea>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Personalized Resources -->
+                        {% if req.providerBenefits.get('personalized_resources') %}
+                        <div class="bg-white rounded-lg p-4 border border-gray-200">
+                            <label class="flex items-center gap-2 mb-3 cursor-pointer">
+                                <input type="checkbox" name="release_personalized_resources" value="1" class="accent-lime-600"
+                                       onchange="document.getElementById('fields-personalized_resources').classList.toggle('hidden')">
+                                <i class="fas fa-book-open text-lime-600"></i>
+                                <span class="font-medium text-sm">Personalized Resources</span>
+                            </label>
+                            <div id="fields-personalized_resources" class="hidden space-y-2 pl-6">
+                                <textarea name="resource_list" rows="3" placeholder="List of recommended tools, articles, courses (one per line or comma-separated)" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-lime-500"></textarea>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- DarkWeb Access — Premium Release Form -->
+                        {% if req.providerBenefits.get('darkweb_access') %}
+                        <div class="release-darkweb rounded-lg p-4 border">
+                            <label class="flex items-center gap-2 mb-3 cursor-pointer">
+                                <input type="checkbox" name="release_darkweb_access" value="1" class="accent-purple-500"
+                                       onchange="document.getElementById('fields-darkweb_access').classList.toggle('hidden')">
+                                <i class="fas fa-mask" style="color:#bf7fff; filter: drop-shadow(0 0 4px rgba(191,127,255,0.5));"></i>
+                                <span class="font-bold text-sm" style="color:#e0d0ff;">DarkWeb Access</span>
+                                <span class="hot-tag hot-tag-dark"><i class="fas fa-fire" style="font-size:8px;"></i> HOT</span>
+                            </label>
+                            <div id="fields-darkweb_access" class="hidden space-y-2 pl-6">
+                                <input name="darkweb_link" type="url" placeholder="Primary portal link (.onion, encrypted URL, or private gateway)" class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2">
+                                <input name="darkweb_mirror_link" type="url" placeholder="Mirror / backup portal (optional redundancy)" class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2">
+                                <input name="darkweb_access_code" type="text" placeholder="Access passphrase or invite code (if gated)" class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2">
+                                <textarea name="darkweb_instructions" rows="2" placeholder="Connection guide: VPN requirements, browser setup, entry protocol, safety notes..." class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2"></textarea>
+                                <p class="text-xs" style="color:#7c6fad;"><i class="fas fa-shield-alt mr-1"></i> All links are end-to-end encrypted between you and the seeker.</p>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Forex Exchange — Premium Release Form -->
+                        {% if req.providerBenefits.get('forex_exchange') %}
+                        <div class="release-forex rounded-lg p-4 border">
+                            <label class="flex items-center gap-2 mb-3 cursor-pointer">
+                                <input type="checkbox" name="release_forex_exchange" value="1" class="accent-emerald-400"
+                                       onchange="document.getElementById('fields-forex_exchange').classList.toggle('hidden')">
+                                <i class="fas fa-coins" style="color:#6ee7b7; filter: drop-shadow(0 0 4px rgba(110,231,183,0.5));"></i>
+                                <span class="font-bold text-sm" style="color:#d1fae5;">Forex Exchange</span>
+                                <span class="hot-tag hot-tag-forex"><i class="fas fa-fire" style="font-size:8px;"></i> HOT</span>
+                            </label>
+                            <div id="fields-forex_exchange" class="hidden space-y-2 pl-6">
+                                <input name="forex_pair" type="text" placeholder="Trading pair or asset (e.g., USD/MWK, BTC/USD, EUR/GBP)" class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2">
+                                <input name="forex_rate" type="text" placeholder="Offered rate (e.g., 1 USD = 1,720 MWK)" class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2">
+                                <input name="forex_min_amount" type="text" placeholder="Minimum deal size (e.g., MWK 50,000 / $100)" class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2">
+                                <input name="forex_contact_channel" type="text" placeholder="Settlement channel (WhatsApp, Telegram, Signal, in-person)" class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2">
+                                <textarea name="forex_terms" rows="2" placeholder="Deal terms: settlement window, volume caps, escrow terms, special conditions..." class="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2"></textarea>
+                                <p class="text-xs" style="color:#4ade80aa;"><i class="fas fa-chart-line mr-1"></i> Rates are live — update before each release for accuracy.</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <div class="flex gap-2 pt-2">
+                        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition">
+                            <i class="fas fa-check mr-1"></i> Confirm Release
+                        </button>
+                        <button type="button"
+                                onclick="document.getElementById('release-form').classList.add('hidden'); document.getElementById('release-prompt').classList.remove('hidden');"
+                                class="border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md hover:bg-gray-50 transition">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+            {% endif %}
+
+            <!-- Seeker: Leave a Review (after payment) -->
+            {% if user.role == 'seeker' and req.accessFeeStatus == 'paid' %}
+            <div id="review-section" class="mb-6"></div>
+            <script>
+            (async function() {
+                try {
+                    const res = await fetch('/api/reviews/can-review/{{ req.id }}');
+                    const data = await res.json();
+                    const section = document.getElementById('review-section');
+                    if (data.canReview) {
+                        section.innerHTML = `
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                                <p class="text-sm text-yellow-800 mb-2"><i class="fas fa-star text-yellow-500 mr-1"></i> <strong>How was your experience?</strong></p>
+                                <a href="/review/{{ req.id }}" class="inline-block bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-2 px-4 rounded-md transition no-underline text-sm">
+                                    <i class="fas fa-star mr-1"></i> Leave a Verified Review
+                                </a>
+                            </div>`;
+                    } else {
+                        const scoreRes = await fetch('/api/reviews/trust-score/{{ req.providerId }}');
+                        const scoreData = await scoreRes.json();
+                        if (scoreData.totalReviews > 0) {
+                            section.innerHTML = `
+                                <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                                    <p class="text-xs text-gray-500"><i class="fas fa-check-circle text-green-500 mr-1"></i> You have already reviewed this transaction.
+                                    <a href="/provider/${encodeURIComponent('{{ req.providerId }}')}/reviews" class="text-blue-600 hover:underline ml-1">View all reviews</a></p>
+                                </div>`;
+                        }
+                    }
+                } catch (e) {}
+            })();
+            </script>
+            {% endif %}
+
+            <a href="{{ url_for('requests.my_requests_page') }}"
+               class="inline-block border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md hover:bg-gray-50 transition no-underline text-sm">
+                &larr; Back to Requests
+            </a>
+        </div>
+        {% endif %}
+    </div>
+    {% include "shared/footer.html" %}
+</div>
+{% endblock %}

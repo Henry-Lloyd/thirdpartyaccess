@@ -1,0 +1,238 @@
+{% extends "shared/base.html" %}
+
+{% block title %}{% if user.role == 'seeker' %}Value Vault{% else %}Seekers With Access{% endif %} - ThirdParty Access{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-50 flex flex-col">
+    {% include "shared/navbar.html" %}
+
+    <div class="container mx-auto px-4 py-8 flex-1">
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold mb-2">
+                {% if user.role == 'seeker' %}
+                <i class="fas fa-vault mr-2 text-indigo-600"></i> My Value Vault
+                {% else %}
+                <i class="fas fa-users mr-2 text-green-600"></i> Seekers With Access
+                {% endif %}
+            </h1>
+            <p class="text-gray-600">
+                {% if user.role == 'seeker' %}
+                All provider benefits, contact details, and resources you've unlocked — all in one place.
+                {% else %}
+                Seekers who have been granted access to your contact details and benefits.
+                {% endif %}
+            </p>
+        </div>
+
+        {% if grants|length == 0 %}
+        <div class="bg-white rounded-lg shadow border border-gray-200 p-8 text-center">
+            <div class="text-6xl mb-4">{% if user.role == 'seeker' %}<i class="fas fa-vault text-indigo-300"></i>{% else %}<i class="fas fa-users text-green-300"></i>{% endif %}</div>
+            <p class="text-gray-500 mb-2 font-medium">
+                {% if user.role == 'seeker' %}Your Value Vault is empty{% else %}No seekers have access yet{% endif %}
+            </p>
+            <p class="text-gray-400 text-sm mb-6">
+                {% if user.role == 'seeker' %}
+                When a provider releases their benefits to you, everything will appear here.
+                {% else %}
+                When you release your benefits to a seeker, they will appear here.
+                {% endif %}
+            </p>
+            {% if user.role == 'seeker' %}
+            <a href="{{ url_for('providers.search_page') }}"
+               class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md transition no-underline">
+                Browse Professionals
+            </a>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="space-y-4">
+            <!-- Summary -->
+            <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+                <p class="text-sm text-indigo-800">
+                    <i class="fas fa-gem mr-1"></i>
+                    <strong>{{ grants|length }}</strong>
+                    {% if user.role == 'seeker' %}provider(s) in your Value Vault{% else %}seeker(s) with access to your benefits{% endif %}
+                </p>
+            </div>
+
+            <!-- Access Grant Cards -->
+            {% for grant in grants %}
+            <div class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden hover:shadow-lg transition">
+                <!-- Card Header -->
+                <div class="p-6">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            {% if user.role == 'seeker' %}
+                            <h3 class="font-bold text-lg mb-1">{{ grant.providerTitle }}</h3>
+                            <p class="text-sm text-blue-600 mb-1">{{ grant.providerExpertise }}</p>
+                            <p class="text-xs text-gray-500 mb-3">Category: {{ grant.providerCategory }}</p>
+                            {% else %}
+                            <h3 class="font-bold text-lg mb-1">{{ grant.seekerName }}</h3>
+                            <p class="text-sm text-gray-600 mb-1">{{ grant.seekerEmail }}</p>
+                            {% endif %}
+
+                            <div class="flex items-center gap-4 mb-4">
+                                <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full {{ 'bg-green-100 text-green-800' if grant.status == 'active' else 'bg-gray-100 text-gray-800' }}">
+                                    {{ '&#x2713; Active' if grant.status == 'active' else grant.status }}
+                                </span>
+                                <span class="text-xs text-gray-400">Granted: {{ grant.grantedAt[:10] }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contact Details Section -->
+                    {% if user.role == 'seeker' %}
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <h4 class="text-sm font-semibold text-green-800 mb-2"><i class="fas fa-address-card mr-1"></i> Contact Details</h4>
+                        <div class="space-y-1">
+                            <p class="text-sm text-green-700"><strong>Email:</strong>
+                                <a href="mailto:{{ grant.contactEmail }}" class="text-green-700 hover:underline">{{ grant.contactEmail }}</a>
+                            </p>
+                            {% if grant.contactPhone %}
+                            <p class="text-sm text-green-700"><strong>Phone:</strong> {{ grant.contactPhone }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="flex flex-wrap gap-2 mt-3">
+                            {% if grant.contactPhone %}
+                            {% set clean_phone = grant.contactPhone|replace(' ', '')|replace('-', '')|replace('(', '')|replace(')', '') %}
+                            {% set wa_phone = clean_phone if clean_phone.startswith('+') else ('+265' ~ clean_phone if not clean_phone.startswith('265') else '+' ~ clean_phone) %}
+                            <a href="https://wa.me/{{ wa_phone|replace('+', '') }}" target="_blank"
+                               class="inline-flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white font-medium py-1.5 px-3 rounded-lg transition no-underline text-xs shadow">
+                                <i class="fab fa-whatsapp"></i> WhatsApp
+                            </a>
+                            {% endif %}
+                            <a href="mailto:{{ grant.contactEmail }}"
+                               class="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium py-1.5 px-3 rounded-lg transition no-underline text-xs shadow">
+                                <i class="fas fa-envelope"></i> Email
+                            </a>
+                        </div>
+                    </div>
+                    {% else %}
+                    <!-- Provider sees what they released -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h4 class="text-sm font-semibold text-blue-800 mb-2"><i class="fas fa-share mr-1"></i> Details Released</h4>
+                        <div class="space-y-1">
+                            <p class="text-sm text-blue-700"><strong>Email:</strong> {{ grant.contactEmail }}</p>
+                            {% if grant.contactPhone %}
+                            <p class="text-sm text-blue-700"><strong>Phone:</strong> {{ grant.contactPhone }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- ═══ VALUE VAULT: Additional Benefits ═══ -->
+                    {% if grant.grantedData and grant.grantedData|length > 0 %}
+                    <div class="mt-4">
+                        <h4 class="text-sm font-semibold text-gray-800 mb-3">
+                            <i class="fas fa-gift mr-1 text-indigo-500"></i>
+                            {% if user.role == 'seeker' %}Your Unlocked Benefits{% else %}Benefits Released{% endif %}
+                            <span class="text-xs font-normal text-gray-500 ml-1">({{ grant.grantedData|length }} item{{ 's' if grant.grantedData|length > 1 }})</span>
+                        </h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+                            {% set benefit_display = {
+                                'video_call_link': {'icon': 'fas fa-video', 'color': 'indigo', 'label': 'Video Call'},
+                                'whatsapp_link': {'icon': 'fab fa-whatsapp', 'color': 'green', 'label': 'WhatsApp Link'},
+                                'booked_chat': {'icon': 'fas fa-comments', 'color': 'blue', 'label': 'Booked Chat'},
+                                'appointment_details': {'icon': 'fas fa-calendar-check', 'color': 'orange', 'label': 'Appointment'},
+                                'digital_product': {'icon': 'fas fa-file-download', 'color': 'purple', 'label': 'Digital Product'},
+                                'exclusive_content': {'icon': 'fas fa-lock-open', 'color': 'pink', 'label': 'Exclusive Content'},
+                                'shadowing_session': {'icon': 'fas fa-user-friends', 'color': 'teal', 'label': 'Shadowing Session'},
+                                'network_fast_pass': {'icon': 'fas fa-network-wired', 'color': 'amber', 'label': 'Network Fast-Pass'},
+                                'micro_consultation': {'icon': 'fas fa-headset', 'color': 'cyan', 'label': 'Micro-Consultation'},
+                                'personalized_resources': {'icon': 'fas fa-book-open', 'color': 'lime', 'label': 'Curated Resources'}
+                            } %}
+
+                            {% for key, data in grant.grantedData.items() %}
+                                {% if key == 'darkweb_access' %}
+                                {# ═══ DarkWeb Premium Vault Card ═══ #}
+                                <div class="vault-darkweb rounded-lg p-3 sm:col-span-2">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <i class="fas fa-mask" style="color:#bf7fff; filter: drop-shadow(0 0 6px rgba(191,127,255,0.6)); font-size:16px;"></i>
+                                        <span class="font-bold text-sm" style="color:#e0d0ff;">DarkWeb Access</span>
+                                        <span class="hot-tag hot-tag-dark"><i class="fas fa-fire" style="font-size:8px;"></i> HOT</span>
+                                    </div>
+                                    <div class="text-sm space-y-1 pl-5" style="color:#c4b5fd;">
+                                        {% for field_key, field_val in data.items() %}
+                                        <div>
+                                            <span class="text-xs capitalize" style="color:#a78bfa;">{{ field_key|replace('_', ' ')|replace('darkweb ', '') }}:</span>
+                                            {% if field_val.startswith('http') %}
+                                            <a href="{{ field_val }}" target="_blank" class="font-medium hover:underline" style="color:#c084fc;">
+                                                <i class="fas fa-external-link-alt text-xs mr-0.5"></i> Access Portal
+                                            </a>
+                                            {% else %}
+                                            <span class="text-sm" style="color:#ddd6fe;">{{ field_val }}</span>
+                                            {% endif %}
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    <p class="text-xs mt-2 pl-5" style="color:#6d28d9;"><i class="fas fa-shield-alt mr-1"></i> Encrypted end-to-end</p>
+                                </div>
+                                {% elif key == 'forex_exchange' %}
+                                {# ═══ Forex Premium Vault Card ═══ #}
+                                <div class="vault-forex rounded-lg p-3 sm:col-span-2">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <i class="fas fa-coins" style="color:#6ee7b7; filter: drop-shadow(0 0 6px rgba(110,231,183,0.6)); font-size:16px;"></i>
+                                        <span class="font-bold text-sm" style="color:#d1fae5;">Forex Exchange</span>
+                                        <span class="hot-tag hot-tag-forex"><i class="fas fa-fire" style="font-size:8px;"></i> HOT</span>
+                                    </div>
+                                    <div class="text-sm space-y-1 pl-5" style="color:#a7f3d0;">
+                                        {% for field_key, field_val in data.items() %}
+                                        <div>
+                                            <span class="text-xs capitalize" style="color:#6ee7b7;">{{ field_key|replace('_', ' ')|replace('forex ', '') }}:</span>
+                                            {% if field_val.startswith('http') %}
+                                            <a href="{{ field_val }}" target="_blank" class="font-medium hover:underline" style="color:#6ee7b7;">
+                                                <i class="fas fa-external-link-alt text-xs mr-0.5"></i> Open Channel
+                                            </a>
+                                            {% else %}
+                                            <span class="text-sm" style="color:#d1fae5;">{{ field_val }}</span>
+                                            {% endif %}
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    <p class="text-xs mt-2 pl-5" style="color:#059669;"><i class="fas fa-chart-line mr-1"></i> Live market rates</p>
+                                </div>
+                                {% elif key in benefit_display %}
+                                {% set meta = benefit_display[key] %}
+                                <div class="bg-{{ meta.color }}-50 border border-{{ meta.color }}-200 rounded-lg p-3">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <i class="{{ meta.icon }} text-{{ meta.color }}-500"></i>
+                                        <span class="font-semibold text-sm text-gray-800">{{ meta.label }}</span>
+                                    </div>
+                                    <div class="text-sm text-gray-700 space-y-1 pl-5">
+                                        {% for field_key, field_val in data.items() %}
+                                        <div>
+                                            <span class="text-xs text-gray-500 capitalize">{{ field_key|replace('_', ' ') }}:</span>
+                                            {% if field_val.startswith('http') %}
+                                            <a href="{{ field_val }}" target="_blank" class="text-blue-600 hover:underline text-sm font-medium">
+                                                {% if 'zoom' in field_val or 'meet' in field_val or 'teams' in field_val %}
+                                                <i class="fas fa-external-link-alt text-xs mr-0.5"></i> Join Meeting
+                                                {% elif 'wa.me' in field_val or 'whatsapp' in field_val %}
+                                                <i class="fab fa-whatsapp text-xs mr-0.5"></i> Open Chat
+                                                {% elif 'download' in field_key or 'product' in field_key %}
+                                                <i class="fas fa-download text-xs mr-0.5"></i> Download
+                                                {% else %}
+                                                <i class="fas fa-external-link-alt text-xs mr-0.5"></i> Open Link
+                                                {% endif %}
+                                            </a>
+                                            {% else %}
+                                            <span class="text-sm">{{ field_val }}</span>
+                                            {% endif %}
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% include "shared/footer.html" %}
+</div>
+{% endblock %}

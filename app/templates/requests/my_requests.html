@@ -1,0 +1,84 @@
+{% extends "shared/base.html" %}
+
+{% block title %}My Requests - ThirdParty Access{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-50 flex flex-col">
+    {% include "shared/navbar.html" %}
+
+    <div class="container mx-auto px-4 py-8 flex-1">
+        <h1 class="text-3xl font-bold mb-2">
+            {% if user.role == 'seeker' %} My Requests{% else %} Incoming Requests{% endif %}
+        </h1>
+        <p class="text-gray-600 mb-8">
+            {% if user.role == 'seeker' %}
+            Track all your access requests to providers.
+            {% else %}
+            Review and manage access requests from seekers.
+            {% endif %}
+        </p>
+
+        {% if requests|length == 0 %}
+        <div class="bg-white rounded-lg shadow border border-gray-200 p-8 text-center">
+            <div class="text-6xl mb-4">{% if user.role == 'seeker' %}{% else %}{% endif %}</div>
+            <p class="text-gray-500 mb-4">No requests yet.</p>
+            {% if user.role == 'seeker' %}
+            <a href="{{ url_for('providers.search_page') }}"
+               class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md transition no-underline">
+                Browse Professionals
+            </a>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="space-y-4">
+            {% for req in requests %}
+            <div class="bg-white rounded-lg shadow border border-gray-200 p-6 hover:shadow-md transition">
+                <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-3 mb-2">
+                            <h3 class="font-bold text-lg">
+                                {% if user.role == 'seeker' %}
+                                {{ req.providerTitle or ('Request #' + req.id[:8]) }}
+                                {% else %}
+                                From: {{ req.seekerName or 'Unknown Seeker' }}
+                                {% endif %}
+                            </h3>
+                        </div>
+
+                        {% if user.role == 'provider' and req.seekerEmail %}
+                        <p class="text-sm text-gray-500 mb-1"> {{ req.seekerEmail }}</p>
+                        {% endif %}
+
+                        <p class="text-gray-600 mb-3">{{ req.purpose }}</p>
+
+                        <div class="flex flex-wrap gap-2">
+                            {% set status_styles = {'pending': 'bg-yellow-100 text-yellow-800', 'approved': 'bg-green-100 text-green-800', 'rejected': 'bg-red-100 text-red-800', 'completed': 'bg-blue-100 text-blue-800'} %}
+                            {% set fee_styles = {'pending': 'bg-orange-100 text-orange-800', 'paid': 'bg-green-100 text-green-800', 'refunded': 'bg-gray-100 text-gray-800'} %}
+
+                            <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full {{ status_styles.get(req.status, 'bg-gray-100 text-gray-800') }}">
+                                Status: {{ req.status }}
+                            </span>
+                            <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full {{ fee_styles.get(req.accessFeeStatus, 'bg-gray-100 text-gray-800') }}">
+                                Fee: {{ req.accessFeeStatus }}
+                            </span>
+                            {% if user.role == 'seeker' and req.accessFee %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
+                                MWK {{ req.accessFee }}
+                            </span>
+                            {% endif %}
+                            <span class="text-xs text-gray-400">{{ req.createdAt[:10] }}</span>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('requests.request_detail_page', request_id=req.id) }}"
+                       class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition whitespace-nowrap ml-4 no-underline text-sm">
+                        {{ 'Review' if user.role == 'provider' else 'Details' }}
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% include "shared/footer.html" %}
+</div>
+{% endblock %}

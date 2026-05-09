@@ -1,0 +1,374 @@
+<nav class="bg-white border-b border-gray-200">
+    <div class="container mx-auto px-4 py-4 flex justify-between items-center relative">
+        <a href="{{ url_for('main.dashboard') }}" class="flex items-center gap-2 no-underline">
+            <img src="{{ url_for('static', filename='logos/logo-icon.png') }}" alt="ThirdParty Access" class="h-8 w-8">
+        </a>
+
+        <div class="flex items-center gap-3">
+            <!-- Profile Picture (small) -->
+            {% if user.get('profilePic') %}
+            <img src="{{ url_for('static', filename=user.profilePic) }}" alt="Profile" class="h-8 w-8 rounded-full object-cover border-2 border-gray-200 shadow-sm">
+            {% else %}
+            <div class="h-8 w-8 rounded-full bg-gradient-to-br {{ 'from-blue-500 to-blue-600' if user.role == 'seeker' else 'from-green-500 to-green-600' }} flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                {{ user.firstName[0]|upper }}{{ user.lastName[0]|upper }}
+            </div>
+            {% endif %}
+
+            <!-- Role Badge + Switch Button -->
+            {% if user.get('hasOtherRole') %}
+            <a href="{{ url_for('auth.switch_role_page') }}"
+               class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition no-underline
+                      {% if user.role == 'seeker' %}
+                      bg-blue-100 text-blue-700 hover:bg-blue-200
+                      {% else %}
+                      bg-green-100 text-green-700 hover:bg-green-200
+                      {% endif %}"
+               title="Switch to {{ 'Provider' if user.role == 'seeker' else 'Seeker' }} account">
+                <i class="fas fa-exchange-alt text-xs"></i>
+                <span class="hidden sm:inline">Switch to {{ 'Provider' if user.role == 'seeker' else 'Seeker' }}</span>
+                <span class="sm:hidden"><i class="fas fa-{{ 'briefcase' if user.role == 'seeker' else 'search' }}"></i></span>
+            </a>
+            {% else %}
+            <span class="px-2.5 py-1 rounded-full text-xs font-medium
+                  {% if user.role == 'seeker' %}
+                  bg-blue-100 text-blue-700
+                  {% else %}
+                  bg-green-100 text-green-700
+                  {% endif %}">
+                <i class="fas fa-{{ 'search' if user.role == 'seeker' else 'briefcase' }} mr-1"></i>
+                {{ user.role|capitalize }}
+            </span>
+            {% endif %}
+
+            <!-- Notification Bell -->
+            <div class="relative" id="notification-bell">
+                <button onclick="toggleNotifications()" class="relative p-2 text-gray-600 hover:text-gray-900">
+                    <i class="fas fa-bell"></i>
+                    <span id="unread-badge" class="absolute top-1 right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 items-center justify-center hidden" style="font-size:10px;"></span>
+                </button>
+
+                <!-- Notification Panel (Draggable) -->
+                <div id="notification-panel" class="fixed md:absolute right-4 md:right-0 top-16 md:mt-2 w-[calc(100vw-2rem)] md:w-96 bg-white rounded-lg shadow-2xl z-[100] border border-gray-200 hidden overflow-hidden">
+                    <div id="notification-header" class="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 cursor-move select-none">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-grip-lines-vertical text-gray-400"></i>
+                            <h3 class="font-semibold text-gray-900">Notifications</h3>
+                        </div>
+                        <button onclick="toggleNotifications()" class="text-gray-400 hover:text-gray-600 p-1">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div id="notification-list" class="max-h-[60vh] md:max-h-96 overflow-y-auto">
+                        <div class="p-8 text-center text-gray-500">Loading...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hamburger Menu -->
+            <div class="relative">
+                <button onclick="toggleMenu()" class="p-2 text-gray-600 hover:text-gray-900 border border-gray-200 rounded-md">
+                    <i class="fas fa-bars"></i>
+                </button>
+                
+                <!-- Menu Dropdown -->
+                <div id="nav-menu" class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg z-50 border border-gray-200 hidden">
+                    <div class="py-1">
+                        <div class="px-4 py-3 border-b border-gray-100">
+                            <!-- Profile Pic in Menu -->
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="relative group">
+                                    {% if user.get('profilePic') %}
+                                    <img src="{{ url_for('static', filename=user.profilePic) }}" alt="Profile" class="h-12 w-12 rounded-full object-cover border-2 border-gray-200">
+                                    {% else %}
+                                    <div class="h-12 w-12 rounded-full bg-gradient-to-br {{ 'from-blue-500 to-blue-600' if user.role == 'seeker' else 'from-green-500 to-green-600' }} flex items-center justify-center text-white text-lg font-bold">
+                                        {{ user.firstName[0]|upper }}{{ user.lastName[0]|upper }}
+                                    </div>
+                                    {% endif %}
+                                    <!-- Camera overlay -->
+                                    <label for="nav-pic-upload" class="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition">
+                                        <i class="fas fa-camera text-white text-sm"></i>
+                                    </label>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-medium text-gray-700 text-sm truncate">{{ user.firstName }} {{ user.lastName }}</div>
+                                    <div class="text-xs text-gray-500 truncate">{{ user.email }}</div>
+                                    <span class="inline-block mt-1 px-2 py-0.5 rounded text-xs font-medium
+                                        {% if user.role == 'seeker' %}bg-blue-100 text-blue-700{% else %}bg-green-100 text-green-700{% endif %}">
+                                        {{ user.role|capitalize }}
+                                    </span>
+                                </div>
+                            </div>
+                            <!-- Hidden file upload form -->
+                            <form id="nav-pic-form" method="POST" action="{{ url_for('auth.upload_profile_pic') }}" enctype="multipart/form-data" class="hidden">
+                                <input type="file" id="nav-pic-upload" name="profile_pic" accept="image/*" onchange="document.getElementById('nav-pic-form').submit()">
+                            </form>
+                            <!-- Quick profile pic actions -->
+                            <div class="flex gap-2 mt-1">
+                                <label for="nav-pic-upload-2" class="text-xs text-blue-600 hover:text-blue-800 cursor-pointer font-medium">
+                                    <i class="fas fa-camera mr-1"></i>{{ 'Change' if user.get('profilePic') else 'Add' }} Photo
+                                </label>
+                                {% if user.get('profilePic') %}
+                                <form method="POST" action="{{ url_for('auth.remove_profile_pic') }}" class="inline">
+                                    <button type="submit" class="text-xs text-red-500 hover:text-red-700 font-medium">
+                                        <i class="fas fa-times mr-1"></i>Remove
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                            <form id="nav-pic-form-2" method="POST" action="{{ url_for('auth.upload_profile_pic') }}" enctype="multipart/form-data" class="hidden">
+                                <input type="file" id="nav-pic-upload-2" name="profile_pic" accept="image/*" onchange="document.getElementById('nav-pic-form-2').submit()">
+                            </form>
+                        </div>
+                        <a href="{{ url_for('main.dashboard') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline">
+                            <i class="fas fa-home mr-2 w-4"></i> Home
+                        </a>
+                        <a href="javascript:void(0)" onclick="toggleNotifications(); toggleMenu();" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline">
+                            <i class="fas fa-bell mr-2 w-4"></i> Notifications
+                        </a>
+                        <a href="{{ url_for('payments.payment_history_page') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline">
+                            <i class="fas fa-receipt mr-2 w-4"></i> Payment History
+                        </a>
+                        {% if user.role == 'provider' %}
+                        <a href="{{ url_for('payments.wallet_page') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline">
+                            <i class="fas fa-wallet mr-2 w-4"></i> My Wallet
+                        </a>
+                        <a href="{{ url_for('providers.verify_page') }}" class="block px-4 py-2 text-sm text-yellow-700 hover:bg-yellow-50 no-underline font-medium">
+                            <i class="fas fa-shield-alt mr-2 w-4"></i> Verification
+                        </a>
+                        {% endif %}
+
+                        <!-- Admin Panel Link (only for admin emails) -->
+                        {% if user.email in ['henrylloyd190@gmail.com'] %}
+                        <div class="border-t border-gray-100"></div>
+                        <a href="{{ url_for('admin.admin_dashboard') }}" class="block px-4 py-2 text-sm text-red-700 hover:bg-red-50 no-underline font-medium">
+                            <i class="fas fa-shield-alt mr-2 w-4"></i> Admin Panel
+                        </a>
+                        <a href="{{ url_for('admin.admin_settings') }}" class="block px-4 py-2 text-sm text-red-700 hover:bg-red-50 no-underline font-medium">
+                            <i class="fas fa-cog mr-2 w-4"></i> Platform Settings
+                        </a>
+                        {% endif %}
+
+                        <!-- Switch Role option -->
+                        {% if user.get('hasOtherRole') %}
+                        <div class="border-t border-gray-100"></div>
+                        <a href="{{ url_for('auth.switch_role_page') }}" class="block px-4 py-2 text-sm font-medium no-underline
+                            {% if user.role == 'seeker' %}text-green-700 hover:bg-green-50{% else %}text-blue-700 hover:bg-blue-50{% endif %}">
+                            <i class="fas fa-exchange-alt mr-2 w-4"></i> Switch to {{ 'Provider' if user.role == 'seeker' else 'Seeker' }}
+                        </a>
+                        {% else %}
+                        <div class="border-t border-gray-100"></div>
+                        <a href="{{ url_for('auth.register_page', role='provider' if user.role == 'seeker' else 'seeker') }}" class="block px-4 py-2 text-sm text-indigo-600 hover:bg-indigo-50 no-underline">
+                            <i class="fas fa-plus-circle mr-2 w-4"></i> Add {{ 'Provider' if user.role == 'seeker' else 'Seeker' }} Account
+                        </a>
+                        {% endif %}
+
+                        <a href="{{ url_for('main.about_page') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 no-underline">
+                            <i class="fas fa-info-circle mr-2 w-4"></i> About Us
+                        </a>
+                        <div class="px-4 py-2 border-t border-gray-100">
+                            <p class="text-xs text-gray-500 font-semibold mb-2">Contact Us</p>
+                            <div class="flex gap-3">
+                                <a href="https://wa.me/+265991451188" target="_blank" class="text-green-600 hover:text-green-800 text-lg" title="WhatsApp">
+                                    <i class="fab fa-whatsapp"></i>
+                                </a>
+                                <a href="https://www.facebook.com/henry.lloyd.3720" target="_blank" class="text-blue-600 hover:text-blue-800 text-lg" title="Facebook">
+                                    <i class="fab fa-facebook"></i>
+                                </a>
+                                <a href="https://www.instagram.com/henrylloyd190/" target="_blank" class="text-pink-600 hover:text-pink-800 text-lg" title="Instagram">
+                                    <i class="fab fa-instagram"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="border-t border-gray-100"></div>
+                        <a href="{{ url_for('auth.logout') }}" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 no-underline">
+                            <i class="fas fa-sign-out-alt mr-2 w-4"></i> Logout
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<script>
+const CURRENT_USER_ID = "{{ user.id }}";
+
+function toggleMenu() {
+    const menu = document.getElementById('nav-menu');
+    menu.classList.toggle('hidden');
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', function(event) {
+    const menu = document.getElementById('nav-menu');
+    const panel = document.getElementById('notification-panel');
+    const bell = document.getElementById('notification-bell');
+    const menuBtn = menu.previousElementSibling;
+
+    if (!menu.contains(event.target) && !event.target.closest('button[onclick="toggleMenu()"]')) {
+        menu.classList.add('hidden');
+    }
+});
+
+function toggleNotifications() {
+    const panel = document.getElementById('notification-panel');
+    panel.classList.toggle('hidden');
+    if (!panel.classList.contains('hidden')) {
+        loadNotifications();
+        // Reset position if it was dragged off-screen
+        panel.style.top = '';
+        panel.style.left = '';
+        panel.style.right = window.innerWidth < 768 ? '1rem' : '0';
+    }
+}
+
+// Draggable Logic
+const panel = document.getElementById('notification-panel');
+const header = document.getElementById('notification-header');
+
+let isDragging = false;
+let currentX;
+let currentY;
+let initialX;
+let initialY;
+let xOffset = 0;
+let yOffset = 0;
+
+header.addEventListener('mousedown', dragStart);
+header.addEventListener('touchstart', dragStart, { passive: false });
+document.addEventListener('mousemove', drag);
+document.addEventListener('touchmove', drag, { passive: false });
+document.addEventListener('mouseup', dragEnd);
+document.addEventListener('touchend', dragEnd);
+
+function dragStart(e) {
+    if (e.type === "touchstart") {
+        initialX = e.touches[0].clientX - xOffset;
+        initialY = e.touches[0].clientY - yOffset;
+    } else {
+        initialX = e.clientX - xOffset;
+        initialY = e.clientY - yOffset;
+    }
+    
+    if (e.target === header || header.contains(e.target)) {
+        isDragging = true;
+    }
+}
+
+function drag(e) {
+    if (isDragging) {
+        e.preventDefault();
+        
+        if (e.type === "touchmove") {
+            currentX = e.touches[0].clientX - initialX;
+            currentY = e.touches[0].clientY - initialY;
+        } else {
+            currentX = e.clientX - initialX;
+            currentY = e.clientY - initialY;
+        }
+
+        xOffset = currentX;
+        yOffset = currentY;
+
+        setTranslate(currentX, currentY, panel);
+    }
+}
+
+function setTranslate(xPos, yPos, el) {
+    el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)";
+}
+
+function dragEnd(e) {
+    initialX = currentX;
+    initialY = currentY;
+    isDragging = false;
+}
+
+async function loadNotifications() {
+    try {
+        const [notifsRes, countRes] = await Promise.all([
+            fetch(`/api/notifications/${CURRENT_USER_ID}`),
+            fetch(`/api/notifications/${CURRENT_USER_ID}/unread-count`)
+        ]);
+        const notifs = await notifsRes.json();
+        const countData = await countRes.json();
+
+        // Update badge
+        const badge = document.getElementById('unread-badge');
+        if (countData.count > 0) {
+            badge.textContent = countData.count > 9 ? '9+' : countData.count;
+            badge.classList.remove('hidden');
+            badge.classList.add('flex');
+        } else {
+            badge.classList.add('hidden');
+            badge.classList.remove('flex');
+        }
+
+        // Update list
+        const list = document.getElementById('notification-list');
+        if (notifs.length === 0) {
+            list.innerHTML = '<div class="p-8 text-center text-gray-500"><p>No notifications yet</p></div>';
+            return;
+        }
+
+        let html = '';
+        if (countData.count > 0) {
+            html += `<div class="px-4 py-2 bg-gray-100 border-b border-gray-200">
+                <button onclick="markAllAsRead()" class="text-sm text-blue-600 hover:text-blue-800 font-medium">Mark all as read</button>
+            </div>`;
+        }
+
+        notifs.forEach(n => {
+            const colorMap = {
+                'new_request': 'bg-blue-50 border-blue-200',
+                'request_approved': 'bg-green-50 border-green-200',
+                'request_rejected': 'bg-red-50 border-red-200',
+                'payment_received': 'bg-purple-50 border-purple-200',
+                'access_granted': 'bg-amber-50 border-amber-200',
+                'payment_failed': 'bg-red-50 border-red-200',
+                'payout_initiated': 'bg-indigo-50 border-indigo-200',
+                'payout_success': 'bg-green-50 border-green-200',
+                'payout_failed': 'bg-red-50 border-red-200'
+            };
+            const color = colorMap[n.type] || 'bg-gray-50 border-gray-200';
+            const unreadClass = n.isRead === 0 ? 'bg-blue-50' : '';
+
+            html += `<div class="p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition ${unreadClass} ${color}" onclick="markAsRead('${n.id}')">
+                <div class="flex justify-between items-start gap-3">
+                    <div class="flex-1">
+                        <p class="font-medium text-gray-900">${n.title}</p>
+                        <p class="text-sm text-gray-600 mt-1">${n.message}</p>
+                        <p class="text-xs text-gray-500 mt-2">${new Date(n.createdAt).toLocaleDateString()}</p>
+                    </div>
+                    <button onclick="event.stopPropagation(); deleteNotification('${n.id}')" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xs"></i>
+                    </button>
+                </div>
+            </div>`;
+        });
+
+        list.innerHTML = html;
+    } catch (err) {
+        console.error('Failed to load notifications:', err);
+    }
+}
+
+async function markAsRead(notificationId) {
+    await fetch(`/api/notifications/${notificationId}/read`, { method: 'PATCH' });
+    loadNotifications();
+}
+
+async function markAllAsRead() {
+    await fetch(`/api/notifications/${CURRENT_USER_ID}/read-all`, { method: 'PATCH' });
+    loadNotifications();
+}
+
+async function deleteNotification(notificationId) {
+    await fetch(`/api/notifications/${notificationId}`, { method: 'DELETE' });
+    loadNotifications();
+}
+
+// Poll for new notifications every 30 seconds
+loadNotifications();
+setInterval(loadNotifications, 30000);
+</script>

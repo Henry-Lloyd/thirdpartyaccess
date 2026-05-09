@@ -1,0 +1,79 @@
+{% extends "shared/base.html" %}
+{% block title %}Payment History - ThirdParty Access{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-50 flex flex-col">
+    {% include "shared/navbar.html" %}
+
+    <div class="container mx-auto px-4 py-8 flex-1">
+        <div class="max-w-4xl mx-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-bold text-gray-900">
+                    <i class="fas fa-receipt text-purple-500 mr-2"></i>Payment History
+                </h1>
+                <a href="{{ url_for('main.dashboard') }}"
+                   class="text-sm text-blue-600 hover:text-blue-800 no-underline">&larr; Dashboard</a>
+            </div>
+
+            {% if payments %}
+            <div class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th class="px-4 py-3 text-left font-medium text-gray-600">Date</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-600">
+                                    {{ 'Provider' if user.role == 'seeker' else 'Seeker' }}
+                                </th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-600">Total Paid</th>
+                                {% if user.role == 'provider' %}
+                                <th class="px-4 py-3 text-left font-medium text-gray-600">Your Share ({{ "%.0f"|format(split.providerPercentage) }}%)</th>
+                                {% endif %}
+                                <th class="px-4 py-3 text-left font-medium text-gray-600">Status</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-600">Ref</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            {% for p in payments %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-3 text-gray-700">{{ p.createdAt[:10] if p.createdAt else 'N/A' }}</td>
+                                <td class="px-4 py-3 text-gray-700">
+                                    {{ p.providerTitle if user.role == 'seeker' else p.seekerName }}
+                                </td>
+                                <td class="px-4 py-3 font-semibold text-gray-900">MWK {{ p.amount|int }}</td>
+                                {% if user.role == 'provider' %}
+                                <td class="px-4 py-3 font-semibold text-green-700">MWK {{ p.providerShare|int }}</td>
+                                {% endif %}
+                                <td class="px-4 py-3">
+                                    {% if p.status == 'success' %}
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        <i class="fas fa-check-circle mr-1"></i> Success
+                                    </span>
+                                    {% elif p.status == 'pending' %}
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                        <i class="fas fa-clock mr-1"></i> Pending
+                                    </span>
+                                    {% else %}
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                        <i class="fas fa-times-circle mr-1"></i> {{ p.status|capitalize }}
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3 text-xs text-gray-500 font-mono">{{ p.txRef[:16] }}...</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% else %}
+            <div class="bg-white rounded-lg shadow border border-gray-200 p-8 text-center">
+                <div class="text-gray-400 text-4xl mb-3"><i class="fas fa-receipt"></i></div>
+                <p class="text-gray-500">No payment records yet.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% include "shared/footer.html" %}
+</div>
+{% endblock %}

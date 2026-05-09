@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='icons/favicon.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
+    <meta name="theme-color" content="#0369a1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ThirdParty Access">
+    <meta name="application-name" content="ThirdParty Access">
+    <meta name="description" content="Where Access Meets Consent - Connect with Very Important People securely.">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <title>{% block title %}ThirdParty Access - Where Access meets Consent{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+        /* ═══ DarkWeb & Forex Premium Styling ═══ */
+        @keyframes darkPulse {
+            0%, 100% { box-shadow: 0 0 8px rgba(75, 0, 130, 0.3), inset 0 0 8px rgba(75, 0, 130, 0.05); }
+            50% { box-shadow: 0 0 16px rgba(75, 0, 130, 0.5), inset 0 0 12px rgba(75, 0, 130, 0.08); }
+        }
+        @keyframes forexGlow {
+            0%, 100% { box-shadow: 0 0 8px rgba(16, 185, 129, 0.25), inset 0 0 6px rgba(16, 185, 129, 0.05); }
+            50% { box-shadow: 0 0 18px rgba(16, 185, 129, 0.45), inset 0 0 10px rgba(16, 185, 129, 0.08); }
+        }
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        .benefit-darkweb {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            border: 1.5px solid #4b0082;
+            animation: darkPulse 3s ease-in-out infinite;
+            position: relative;
+            overflow: hidden;
+        }
+        .benefit-darkweb::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, #9b59b6, #8e44ad, transparent);
+            background-size: 200% 100%;
+            animation: shimmer 3s linear infinite;
+        }
+        .benefit-darkweb .benefit-label { color: #e0d0ff; }
+        .benefit-darkweb .benefit-desc { color: #a0a0cc; }
+        .benefit-darkweb .benefit-icon { color: #bf7fff; filter: drop-shadow(0 0 4px rgba(191,127,255,0.5)); }
+
+        .benefit-forex {
+            background: linear-gradient(135deg, #064e3b 0%, #065f46 50%, #047857 100%);
+            border: 1.5px solid #10b981;
+            animation: forexGlow 3s ease-in-out infinite;
+            position: relative;
+            overflow: hidden;
+        }
+        .benefit-forex::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, #34d399, #10b981, transparent);
+            background-size: 200% 100%;
+            animation: shimmer 3s linear infinite;
+        }
+        .benefit-forex .benefit-label { color: #d1fae5; }
+        .benefit-forex .benefit-desc { color: #a7f3d0; }
+        .benefit-forex .benefit-icon { color: #6ee7b7; filter: drop-shadow(0 0 4px rgba(110,231,183,0.5)); }
+
+        /* Badge pills for search cards */
+        .badge-darkweb {
+            background: linear-gradient(135deg, #1a1a2e, #2d1b4e);
+            color: #d8b4fe;
+            border: 1px solid #7c3aed;
+        }
+        .badge-forex {
+            background: linear-gradient(135deg, #064e3b, #065f46);
+            color: #a7f3d0;
+            border: 1px solid #10b981;
+        }
+
+        /* Value Vault cards for DarkWeb & Forex */
+        .vault-darkweb {
+            background: linear-gradient(135deg, #1e1b4b 0%, #1a1a2e 50%, #0f172a 100%);
+            border: 1.5px solid #6d28d9;
+            color: #e0d0ff;
+        }
+        .vault-darkweb a { color: #c084fc; }
+        .vault-darkweb a:hover { color: #e9d5ff; }
+        .vault-darkweb .text-gray-500 { color: #a78bfa !important; }
+        .vault-darkweb .text-gray-700, .vault-darkweb .text-gray-800 { color: #e0d0ff !important; }
+        .vault-darkweb .text-sm { color: #c4b5fd; }
+
+        .vault-forex {
+            background: linear-gradient(135deg, #022c22 0%, #064e3b 50%, #065f46 100%);
+            border: 1.5px solid #059669;
+            color: #d1fae5;
+        }
+        .vault-forex a { color: #6ee7b7; }
+        .vault-forex a:hover { color: #a7f3d0; }
+        .vault-forex .text-gray-500 { color: #6ee7b7 !important; }
+        .vault-forex .text-gray-700, .vault-forex .text-gray-800 { color: #d1fae5 !important; }
+        .vault-forex .text-sm { color: #a7f3d0; }
+
+        /* Release form sections */
+        .release-darkweb {
+            background: linear-gradient(135deg, #1e1b4b, #1a1a2e);
+            border-color: #6d28d9;
+        }
+        .release-darkweb input, .release-darkweb textarea {
+            background: #0f172a; color: #e0d0ff; border-color: #4c1d95;
+        }
+        .release-darkweb input::placeholder, .release-darkweb textarea::placeholder { color: #7c6fad; }
+        .release-darkweb input:focus, .release-darkweb textarea:focus { border-color: #8b5cf6; ring-color: #8b5cf6; }
+        .release-darkweb label, .release-darkweb span { color: #d8b4fe; }
+
+        .release-forex {
+            background: linear-gradient(135deg, #022c22, #064e3b);
+            border-color: #059669;
+        }
+        .release-forex input, .release-forex textarea {
+            background: #022c22; color: #d1fae5; border-color: #065f46;
+        }
+        .release-forex input::placeholder, .release-forex textarea::placeholder { color: #4ade80aa; }
+        .release-forex input:focus, .release-forex textarea:focus { border-color: #10b981; ring-color: #10b981; }
+        .release-forex label, .release-forex span { color: #a7f3d0; }
+
+        /* HOT tag micro-badge */
+        .hot-tag {
+            display: inline-flex; align-items: center; gap: 2px;
+            font-size: 9px; font-weight: 700; letter-spacing: 0.5px;
+            padding: 1px 5px; border-radius: 4px; text-transform: uppercase;
+            animation: hotPulse 2s ease-in-out infinite;
+        }
+        @keyframes hotPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .hot-tag-dark { background: #7c3aed; color: #ede9fe; }
+        .hot-tag-forex { background: #059669; color: #ecfdf5; }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-50 text-gray-900">
+    {% block body %}{% endblock %}
+    {% block scripts %}{% endblock %}
+
+    <!-- PWA: Service Worker Registration + Install Prompt -->
+    <script>
+        // Register the service worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                    .then(function (reg) {
+                        console.log('ThirdParty Access SW registered, scope:', reg.scope);
+                    })
+                    .catch(function (err) {
+                        console.warn('ThirdParty Access SW registration failed:', err);
+                    });
+            });
+        }
+    </script>
+    <script src="{{ url_for('static', filename='pwa-install.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,411 @@
+{% extends "shared/base.html" %}
+
+{% block title %}Platform Settings - Admin - ThirdParty Access{% endblock %}
+
+{% block extra_head %}
+<style>
+    .range-track::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #dc2626;
+        cursor: pointer;
+        border: 3px solid white;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+    .range-track::-moz-range-thumb {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #dc2626;
+        cursor: pointer;
+        border: 3px solid white;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+    .range-track {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 8px;
+        border-radius: 4px;
+        background: linear-gradient(to right, #dc2626 0%, #dc2626 var(--val), #e5e7eb var(--val), #e5e7eb 100%);
+        outline: none;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-50 flex flex-col">
+    {% include "shared/navbar.html" %}
+
+    <div class="container mx-auto px-4 py-8 flex-1 max-w-3xl">
+
+        <!-- Breadcrumb -->
+        <div class="flex items-center gap-2 text-sm text-gray-500 mb-6">
+            <a href="{{ url_for('admin.admin_dashboard') }}" class="hover:text-red-600 no-underline">
+                <i class="fas fa-shield-alt mr-1"></i>Admin Dashboard
+            </a>
+            <i class="fas fa-chevron-right text-xs"></i>
+            <span class="text-gray-900 font-medium">Platform Settings</span>
+        </div>
+
+        <!-- Page Header -->
+        <div class="p-6 mb-8 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-lg shadow">
+            <div class="flex items-center gap-3 mb-1">
+                <i class="fas fa-cog text-2xl"></i>
+                <h1 class="text-2xl font-bold">Platform Settings</h1>
+            </div>
+            <p class="text-red-100 text-sm">Configure platform-wide settings. Changes take effect immediately for all new transactions.</p>
+        </div>
+
+        <!-- Success Banner -->
+        {% if request.args.get('success') == '1' %}
+        <div id="success-banner" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 flex items-center gap-3">
+            <div class="flex-shrink-0">
+                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                    <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                </div>
+            </div>
+            <div class="flex-1">
+                <p class="font-semibold text-green-800">Revenue Split Updated Successfully!</p>
+                <p class="text-sm text-green-700">
+                    Provider share set to <strong>{{ request.args.get('new_pct', '') }}%</strong>.
+                    {% if request.args.get('notified') %}
+                    Notification sent to <strong>{{ request.args.get('notified') }}</strong> provider(s).
+                    {% endif %}
+                </p>
+            </div>
+            <button onclick="document.getElementById('success-banner').remove()" class="ml-auto text-green-600 hover:text-green-800 flex-shrink-0">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        {% endif %}
+
+        <!-- Error Banner -->
+        {% if request.args.get('error') %}
+        <div id="error-banner" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-center gap-3">
+            <div class="flex-shrink-0">
+                <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                </div>
+            </div>
+            <div class="flex-1">
+                <p class="font-semibold text-red-800">Update Failed</p>
+                <p class="text-sm text-red-700">{{ request.args.get('error') }}</p>
+            </div>
+            <button onclick="document.getElementById('error-banner').remove()" class="ml-auto text-red-600 hover:text-red-800 flex-shrink-0">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        {% endif %}
+
+        <!-- Revenue Split Configuration Card -->
+        <div class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden mb-8">
+            <div class="p-6 border-b border-gray-200 bg-gray-50">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                        <i class="fas fa-percentage text-red-600"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-900">Revenue Split Configuration</h2>
+                        <p class="text-sm text-gray-500">Adjust how revenue from access fees is shared between providers and the platform.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-6">
+                <!-- Current Split Display -->
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                        <p class="text-xs text-green-600 uppercase font-semibold mb-1">Provider Share</p>
+                        <p class="text-3xl font-bold text-green-700" id="display-provider-pct">{{ "%.1f"|format(split.providerPercentage) }}%</p>
+                    </div>
+                    <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-4 text-center">
+                        <p class="text-xs text-indigo-600 uppercase font-semibold mb-1">Platform Share</p>
+                        <p class="text-3xl font-bold text-indigo-700" id="display-platform-pct">{{ "%.1f"|format(split.platformPercentage) }}%</p>
+                    </div>
+                </div>
+
+                {% if split.updatedAt %}
+                <p class="text-xs text-gray-400 mb-6 text-center">
+                    <i class="fas fa-clock mr-1"></i>
+                    Last updated: {{ split.updatedAt[:19].replace('T', ' ') }} UTC
+                    {% if split.updatedBy and split.updatedBy != 'system' %} by {{ split.updatedBy }}{% endif %}
+                </p>
+                {% endif %}
+
+                <!-- Update Form -->
+                <form method="POST" action="{{ url_for('admin.admin_update_revenue_split') }}" id="split-form">
+                    <label class="block text-sm font-medium text-gray-700 mb-2" for="provider_percentage">
+                        Provider Share Percentage
+                    </label>
+
+                    <!-- Slider -->
+                    <div class="mb-4">
+                        <input type="range" id="pct-slider" min="0" max="100" step="0.5"
+                               value="{{ split.providerPercentage }}"
+                               class="range-track w-full"
+                               style="--val: {{ split.providerPercentage }}%"
+                               oninput="syncFromSlider(this.value)">
+                        <div class="flex justify-between text-xs text-gray-400 mt-1">
+                            <span>0% (all to platform)</span>
+                            <span>50/50</span>
+                            <span>100% (all to provider)</span>
+                        </div>
+                    </div>
+
+                    <!-- Numeric Input -->
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="relative flex-1">
+                            <input type="number" name="provider_percentage" id="pct-input"
+                                   value="{{ "%.1f"|format(split.providerPercentage) }}"
+                                   min="0" max="100" step="0.1"
+                                   required
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 focus:outline-none text-lg font-semibold text-center"
+                                   oninput="syncFromInput(this.value)">
+                            <span class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">%</span>
+                        </div>
+                    </div>
+
+                    <!-- Visual Bar Preview -->
+                    <div class="mb-6">
+                        <p class="text-xs text-gray-500 font-medium mb-2">Split Preview (per MWK 10,000 payment)</p>
+                        <div class="flex rounded-lg overflow-hidden h-10 border border-gray-200">
+                            <div id="bar-provider" class="bg-green-500 flex items-center justify-center text-white text-xs font-bold transition-all duration-300"
+                                 style="width: {{ split.providerPercentage }}%">
+                                <span id="bar-provider-label">MWK {{ "{:,.0f}".format(split.providerPercentage * 100) }}</span>
+                            </div>
+                            <div id="bar-platform" class="bg-indigo-500 flex items-center justify-center text-white text-xs font-bold transition-all duration-300"
+                                 style="width: {{ split.platformPercentage }}%">
+                                <span id="bar-platform-label">MWK {{ "{:,.0f}".format(split.platformPercentage * 100) }}</span>
+                            </div>
+                        </div>
+                        <div class="flex justify-between text-xs mt-1">
+                            <span class="text-green-600 font-medium"><i class="fas fa-user mr-1"></i>Provider</span>
+                            <span class="text-indigo-600 font-medium"><i class="fas fa-building mr-1"></i>Platform</span>
+                        </div>
+                    </div>
+
+                    <!-- Warning -->
+                    <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+                        <div class="flex gap-3">
+                            <i class="fas fa-exclamation-triangle text-amber-500 mt-0.5"></i>
+                            <div class="text-sm text-amber-800">
+                                <p class="font-semibold mb-1">Please note:</p>
+                                <ul class="list-disc list-inside space-y-1 text-xs">
+                                    <li>This change applies to <strong>all new transactions</strong> immediately.</li>
+                                    <li>Existing completed payments are not affected.</li>
+                                    <li>All providers will receive a notification about this change.</li>
+                                    <li>All amounts use <strong>MWK (Malawian Kwacha)</strong>.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="submit-btn"
+                            class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition flex items-center justify-center gap-2">
+                        <i class="fas fa-save"></i>
+                        Update Share Percentage
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════════════ -->
+        <!--  DATA PERSISTENCE — Export / Import / Backup          -->
+        <!-- ════════════════════════════════════════════════════════ -->
+
+        <!-- Import Success Banner -->
+        {% if request.args.get('import_success') == '1' %}
+        <div id="import-success-banner" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 flex items-center gap-3">
+            <div class="flex-shrink-0">
+                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                    <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                </div>
+            </div>
+            <div class="flex-1">
+                <p class="font-semibold text-green-800">Data Import Successful!</p>
+                <p class="text-sm text-green-700">
+                    Imported <strong>{{ request.args.get('import_rows', '0') }}</strong> rows across
+                    <strong>{{ request.args.get('import_tables', '0') }}</strong> table(s). A backup was created before importing.
+                </p>
+            </div>
+            <button onclick="document.getElementById('import-success-banner').remove()" class="ml-auto text-green-600 hover:text-green-800 flex-shrink-0">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        {% endif %}
+
+        <!-- Import Error Banner -->
+        {% if request.args.get('import_error') %}
+        <div id="import-error-banner" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-center gap-3">
+            <div class="flex-shrink-0">
+                <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                </div>
+            </div>
+            <div class="flex-1">
+                <p class="font-semibold text-red-800">Import Failed</p>
+                <p class="text-sm text-red-700">{{ request.args.get('import_error') }}</p>
+            </div>
+            <button onclick="document.getElementById('import-error-banner').remove()" class="ml-auto text-red-600 hover:text-red-800 flex-shrink-0">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        {% endif %}
+
+        <div class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden mb-8">
+            <div class="p-6 border-b border-gray-200 bg-gray-50">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                        <i class="fas fa-database text-blue-600"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-900">Data Persistence & Backup</h2>
+                        <p class="text-sm text-gray-500">Export and import all platform data. Use this before redeploying or changing hosts so you never lose user data.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-6 space-y-6">
+                <!-- Export Section -->
+                <div>
+                    <h3 class="font-semibold text-gray-900 mb-2"><i class="fas fa-download text-green-600 mr-2"></i>Export Data</h3>
+                    <p class="text-sm text-gray-600 mb-4">Download all platform data (users, accounts, providers, payments, requests, reviews, notifications, settings) as a portable file. Use this as your data insurance.</p>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <a href="{{ url_for('admin.admin_export_data') }}"
+                           class="flex items-center gap-3 px-4 py-3 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition no-underline">
+                            <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-file-code text-green-600"></i>
+                            </div>
+                            <div>
+                                <p class="font-semibold text-green-800 text-sm">Export as JSON</p>
+                                <p class="text-xs text-green-600">Portable, can be imported back into any new deployment</p>
+                            </div>
+                        </a>
+
+                        <a href="{{ url_for('admin.admin_backup_sqlite') }}"
+                           class="flex items-center gap-3 px-4 py-3 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition no-underline">
+                            <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-database text-indigo-600"></i>
+                            </div>
+                            <div>
+                                <p class="font-semibold text-indigo-800 text-sm">Download SQLite Backup</p>
+                                <p class="text-xs text-indigo-600">Raw database file, drop-in replacement</p>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+
+                <hr class="border-gray-200">
+
+                <!-- Import Section -->
+                <div>
+                    <h3 class="font-semibold text-gray-900 mb-2"><i class="fas fa-upload text-blue-600 mr-2"></i>Import Data</h3>
+                    <p class="text-sm text-gray-600 mb-4">Restore data from a previously exported JSON file. This uses <strong>merge mode</strong> &mdash; existing records are updated, new records are added, and nothing is deleted. A backup is automatically created before importing.</p>
+
+                    <form method="POST" action="{{ url_for('admin.admin_import_data') }}" enctype="multipart/form-data"
+                          onsubmit="return confirm('Are you sure you want to import data? A backup will be created first, then data will be merged into the current database.')">
+                        <div class="flex flex-col sm:flex-row items-start sm:items-end gap-3">
+                            <div class="flex-1 w-full">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Select JSON Data File</label>
+                                <input type="file" name="data_file" accept=".json" required
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm
+                                              file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-medium
+                                              file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                            </div>
+                            <button type="submit"
+                                    class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition text-sm flex-shrink-0">
+                                <i class="fas fa-upload mr-1"></i> Import & Merge
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Info Box -->
+                <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <div class="flex gap-3">
+                        <i class="fas fa-lightbulb text-amber-500 mt-0.5"></i>
+                        <div class="text-sm text-amber-800">
+                            <p class="font-semibold mb-1">Data Persistence Tips:</p>
+                            <ul class="list-disc list-inside space-y-1 text-xs">
+                                <li><strong>Export regularly</strong> (especially before deploying updates or migrating hosts).</li>
+                                <li>The <strong>JSON export</strong> contains all tables: users, passwords, providers, payments, payouts, reviews, notifications, settings, and more.</li>
+                                <li>The <strong>SQLite backup</strong> is a direct copy of the database file &mdash; you can replace the <code>data/database.sqlite</code> file on a new deployment.</li>
+                                <li>Importing uses <strong>merge mode</strong>: existing rows are updated, new rows are added. No data is deleted.</li>
+                                <li>A safety backup is <strong>automatically created</strong> before every import.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Back to Dashboard -->
+        <div class="text-center">
+            <a href="{{ url_for('admin.admin_dashboard') }}" class="text-sm text-gray-500 hover:text-red-600 no-underline">
+                <i class="fas fa-arrow-left mr-1"></i> Back to Admin Dashboard
+            </a>
+        </div>
+    </div>
+
+    {% include "shared/footer.html" %}
+</div>
+
+<script>
+const slider = document.getElementById('pct-slider');
+const input = document.getElementById('pct-input');
+const displayProvider = document.getElementById('display-provider-pct');
+const displayPlatform = document.getElementById('display-platform-pct');
+const barProvider = document.getElementById('bar-provider');
+const barPlatform = document.getElementById('bar-platform');
+const barProviderLabel = document.getElementById('bar-provider-label');
+const barPlatformLabel = document.getElementById('bar-platform-label');
+
+function updateDisplay(val) {
+    val = parseFloat(val) || 0;
+    val = Math.max(0, Math.min(100, val));
+    const platformVal = (100 - val).toFixed(1);
+
+    displayProvider.textContent = val.toFixed(1) + '%';
+    displayPlatform.textContent = platformVal + '%';
+
+    barProvider.style.width = val + '%';
+    barPlatform.style.width = platformVal + '%';
+
+    const providerMWK = Math.floor(10000 * val / 100);
+    const platformMWK = 10000 - providerMWK;
+    barProviderLabel.textContent = val >= 15 ? 'MWK ' + providerMWK.toLocaleString() : '';
+    barPlatformLabel.textContent = (100 - val) >= 15 ? 'MWK ' + platformMWK.toLocaleString() : '';
+
+    slider.style.setProperty('--val', val + '%');
+}
+
+function syncFromSlider(val) {
+    input.value = parseFloat(val).toFixed(1);
+    updateDisplay(val);
+}
+
+function syncFromInput(val) {
+    slider.value = val;
+    updateDisplay(val);
+}
+
+// Confirm before submitting
+document.getElementById('split-form').addEventListener('submit', function(e) {
+    const val = parseFloat(input.value);
+    if (isNaN(val) || val < 0 || val > 100) {
+        e.preventDefault();
+        alert('Please enter a valid percentage between 0 and 100.');
+        return;
+    }
+    const platformVal = (100 - val).toFixed(1);
+    if (!confirm(`Are you sure you want to update the revenue split?\n\nProvider share: ${val.toFixed(1)}%\nPlatform share: ${platformVal}%\n\nAll providers will be notified of this change.`)) {
+        e.preventDefault();
+    }
+});
+</script>
+{% endblock %}

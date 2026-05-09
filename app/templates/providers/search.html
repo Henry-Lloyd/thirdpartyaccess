@@ -1,0 +1,182 @@
+{% extends "shared/base.html" %}
+
+{% block title %}Search Providers - ThirdParty Access{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-50 flex flex-col">
+    {% include "shared/navbar.html" %}
+
+    <div class="container mx-auto px-4 py-8 flex-1">
+        <div class="bg-white rounded-lg shadow border border-gray-200 p-6 mb-8">
+            <h1 class="text-3xl font-bold mb-2">Search Professionals</h1>
+            <p class="text-gray-600 text-sm mb-6">Find very important People and request access to their contact details</p>
+            <form method="GET" class="flex gap-2">
+                <input type="text" name="q" value="{{ query }}"
+                       class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="Search by name, specialization, or keywords...">
+                <button type="submit"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md transition">
+                    Search
+                </button>
+            </form>
+        </div>
+
+        {% if providers|length == 0 %}
+        <div class="bg-white rounded-lg shadow border border-gray-200 p-8 text-center">
+            <p class="text-gray-500">No providers found. Try a different search.</p>
+        </div>
+        {% else %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for provider in providers %}
+            <div class="bg-white rounded-lg shadow border border-gray-200 p-6 hover:shadow-lg transition" id="provider-{{ provider.id }}">
+                <div class="flex items-center gap-3 mb-3">
+                    {% if provider.profilePhoto %}
+                    <img src="{{ url_for('static', filename=provider.profilePhoto) }}" alt="{{ provider.title }}" class="h-12 w-12 rounded-full object-cover border-2 border-gray-200 flex-shrink-0">
+                    {% else %}
+                    <div class="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-lg font-bold flex-shrink-0">
+                        {{ provider.title[0]|upper }}
+                    </div>
+                    {% endif %}
+                    <div class="min-w-0">
+                        <h3 class="text-xl font-bold truncate">{{ provider.title }}</h3>
+                        <p class="text-sm text-blue-600 font-semibold truncate">{{ provider.expertise }}</p>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    {% if provider.verified %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-800 border border-yellow-300">
+                        Verified
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-300">
+                        Unverified
+                    </span>
+                    {% endif %}
+                </div>
+
+                <div class="text-gray-600 text-sm mb-4">
+                    <div id="bio-short-{{ provider.id }}" class="truncate">
+                        {{ provider.bio }}
+                    </div>
+                    <div id="bio-full-{{ provider.id }}" class="hidden whitespace-pre-wrap">
+                        {{ provider.bio }}
+                    </div>
+                    {% if provider.bio|length > 50 %}
+                    <button onclick="toggleBio('{{ provider.id }}')" id="bio-btn-{{ provider.id }}" class="text-blue-600 hover:text-blue-800 font-medium mt-1 text-xs">
+                        Read more
+                    </button>
+                    {% endif %}
+                </div>
+
+                <!-- Offered Benefits Badges -->
+                {% if provider.offeredBenefits %}
+                <div class="flex flex-wrap gap-1.5 mb-4">
+                    {% set benefit_meta = {
+                        'video_call_link': {'icon': 'fas fa-video', 'color': 'indigo', 'label': 'Video Call'},
+                        'whatsapp_link': {'icon': 'fab fa-whatsapp', 'color': 'green', 'label': 'WhatsApp'},
+                        'booked_chat': {'icon': 'fas fa-comments', 'color': 'blue', 'label': 'Chat'},
+                        'appointment_details': {'icon': 'fas fa-calendar-check', 'color': 'orange', 'label': 'Appointment'},
+                        'digital_product': {'icon': 'fas fa-file-download', 'color': 'purple', 'label': 'Digital Product'},
+                        'exclusive_content': {'icon': 'fas fa-lock-open', 'color': 'pink', 'label': 'Exclusive Content'},
+                        'shadowing_session': {'icon': 'fas fa-user-friends', 'color': 'teal', 'label': 'Shadowing'},
+                        'network_fast_pass': {'icon': 'fas fa-network-wired', 'color': 'amber', 'label': 'Network Pass'},
+                        'micro_consultation': {'icon': 'fas fa-headset', 'color': 'cyan', 'label': 'Consultation'},
+                        'personalized_resources': {'icon': 'fas fa-book-open', 'color': 'lime', 'label': 'Resources'}
+                    } %}
+                    {% for key, val in provider.offeredBenefits.items() %}
+                        {% if val and key in benefit_meta %}
+                        {% set meta = benefit_meta[key] %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-{{ meta.color }}-100 text-{{ meta.color }}-700" title="{{ meta.label }}">
+                            <i class="{{ meta.icon }}" style="font-size:10px;"></i> {{ meta.label }}
+                        </span>
+                        {% endif %}
+                    {% endfor %}
+                    {# Premium DarkWeb badge #}
+                    {% if provider.offeredBenefits.get('darkweb_access') %}
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold badge-darkweb" title="DarkWeb Access">
+                        <i class="fas fa-mask" style="font-size:10px;"></i> DarkWeb <i class="fas fa-fire text-orange-400" style="font-size:8px;"></i>
+                    </span>
+                    {% endif %}
+                    {# Premium Forex badge #}
+                    {% if provider.offeredBenefits.get('forex_exchange') %}
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold badge-forex" title="Forex Exchange">
+                        <i class="fas fa-coins" style="font-size:10px;"></i> Forex <i class="fas fa-fire text-orange-400" style="font-size:8px;"></i>
+                    </span>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-sm text-gray-500">Access Fee: <strong>MWK {{ provider.accessFee }}</strong></span>
+                    {% if provider.hourlyRate %}
+                    <span class="text-sm text-gray-500">MWK {{ provider.hourlyRate }}/hr</span>
+                    {% endif %}
+                </div>
+
+                {% if user.role != 'seeker' %}
+                <div class="text-sm text-gray-400 text-center py-2">Only seekers can request access</div>
+                {% else %}
+                <!-- Request Form Toggle -->
+                <div id="btn-{{ provider.id }}">
+                    <button onclick="showRequestForm('{{ provider.id }}')"
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition">
+                        Request Access
+                    </button>
+                </div>
+                <div id="form-{{ provider.id }}" class="hidden space-y-3 mt-4 pt-4 border-t">
+                    <form method="POST" action="{{ url_for('requests.submit_request', provider_id=provider.id) }}">
+                        <div class="mb-3">
+                            <label class="text-sm font-medium text-gray-700">Why do you want to connect?</label>
+                            <textarea name="purpose"
+                                      class="w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mt-1"
+                                      rows="3" placeholder="Explain your purpose for requesting access..." required></textarea>
+                        </div>
+                        <div class="flex gap-2">
+                            <button type="submit"
+                                    class="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 px-4 rounded-md transition">
+                                Submit Request
+                            </button>
+                            <button type="button" onclick="hideRequestForm('{{ provider.id }}')"
+                                    class="flex-1 border border-gray-300 text-gray-700 text-sm font-medium py-2 px-4 rounded-md hover:bg-gray-50 transition">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% include "shared/footer.html" %}
+</div>
+
+<script>
+function showRequestForm(providerId) {
+    document.getElementById('btn-' + providerId).classList.add('hidden');
+    document.getElementById('form-' + providerId).classList.remove('hidden');
+}
+function hideRequestForm(providerId) {
+    document.getElementById('btn-' + providerId).classList.remove('hidden');
+    document.getElementById('form-' + providerId).classList.add('hidden');
+}
+
+function toggleBio(providerId) {
+    const shortBio = document.getElementById('bio-short-' + providerId);
+    const fullBio = document.getElementById('bio-full-' + providerId);
+    const btn = document.getElementById('bio-btn-' + providerId);
+    
+    if (fullBio.classList.contains('hidden')) {
+        fullBio.classList.remove('hidden');
+        shortBio.classList.add('hidden');
+        btn.textContent = 'Read less';
+    } else {
+        fullBio.classList.add('hidden');
+        shortBio.classList.remove('hidden');
+        btn.textContent = 'Read more';
+    }
+}
+</script>
+{% endblock %}

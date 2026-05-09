@@ -1,0 +1,309 @@
+{% extends "shared/base.html" %}
+
+{% block title %}Identity Verification - ThirdParty Access{% endblock %}
+
+{% block extra_head %}
+<style>
+    .upload-zone {
+        border: 2px dashed #d1d5db;
+        border-radius: 12px;
+        padding: 24px;
+        text-align: center;
+        transition: all 0.2s;
+        cursor: pointer;
+        position: relative;
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+        border-color: #3b82f6;
+        background: #eff6ff;
+    }
+    .upload-zone.has-file {
+        border-color: #22c55e;
+        background: #f0fdf4;
+    }
+    .upload-zone input[type="file"] {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+    }
+    .status-timeline {
+        position: relative;
+        padding-left: 28px;
+    }
+    .status-timeline::before {
+        content: '';
+        position: absolute;
+        left: 10px;
+        top: 8px;
+        bottom: 8px;
+        width: 2px;
+        background: #e5e7eb;
+    }
+    .timeline-step {
+        position: relative;
+        padding-bottom: 20px;
+    }
+    .timeline-step:last-child { padding-bottom: 0; }
+    .timeline-dot {
+        position: absolute;
+        left: -24px;
+        top: 2px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        border: 2px solid #d1d5db;
+        background: white;
+        z-index: 1;
+    }
+    .timeline-dot.completed {
+        background: #22c55e;
+        border-color: #22c55e;
+    }
+    .timeline-dot.active {
+        background: #3b82f6;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+    }
+    .timeline-dot.rejected {
+        background: #ef4444;
+        border-color: #ef4444;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-50 flex flex-col">
+    {% include "shared/navbar.html" %}
+
+    <div class="container mx-auto px-4 py-8 flex-1">
+        <div class="max-w-2xl mx-auto">
+
+            <!-- Page Header -->
+            <div class="mb-6">
+                <a href="{{ url_for('main.dashboard') }}" class="text-sm text-blue-600 hover:text-blue-800 no-underline">
+                    <i class="fas fa-arrow-left mr-1"></i> Back to Dashboard
+                </a>
+                <h1 class="text-3xl font-bold mt-3 mb-1">Identity Verification</h1>
+                <p class="text-gray-600">Verify your identity to earn a <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-100 text-yellow-800 border border-yellow-300"><i class="fas fa-check-circle"></i> Gold Badge</span> on your profile.</p>
+            </div>
+
+            <!-- Success / Error Alerts -->
+            {% if success %}
+            <div class="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg mb-6 flex items-center gap-3">
+                <i class="fas fa-check-circle text-green-500 text-lg"></i>
+                <p class="text-sm font-medium">{{ success }}</p>
+            </div>
+            {% endif %}
+            {% if error %}
+            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-center gap-3">
+                <i class="fas fa-exclamation-circle text-red-500 text-lg"></i>
+                <p class="text-sm font-medium">{{ error }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Already Verified -->
+            {% if verification and verification.verified %}
+            <div class="bg-white rounded-lg shadow border border-green-200 p-8 text-center">
+                <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-yellow-100 mb-4">
+                    <i class="fas fa-check-circle text-yellow-500 text-4xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-900 mb-2">You're Verified!</h2>
+                <p class="text-gray-600 mb-4">Your identity has been confirmed. A gold verification badge is displayed on your profile in search results.</p>
+                <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold bg-yellow-100 text-yellow-800 border border-yellow-300">
+                    <i class="fas fa-check-circle"></i> Verified Provider
+                </span>
+            </div>
+
+            {% else %}
+            <!-- Verification Progress Timeline -->
+            <div class="bg-white rounded-lg shadow border border-gray-200 p-6 mb-6">
+                <h2 class="text-lg font-bold mb-4"><i class="fas fa-list-ol text-blue-500 mr-2"></i>Verification Progress</h2>
+                <div class="status-timeline">
+                    <!-- Step 1: Upload ID -->
+                    <div class="timeline-step">
+                        <div class="timeline-dot {{ 'completed' if verification and verification.hasIdDocument else ('active' if not verification or not verification.hasIdDocument else '') }}">
+                            {% if verification and verification.hasIdDocument %}
+                            <i class="fas fa-check text-white" style="font-size:8px; position:absolute; top:2px; left:2px;"></i>
+                            {% endif %}
+                        </div>
+                        <p class="font-medium text-sm {{ 'text-green-700' if verification and verification.hasIdDocument else 'text-gray-900' }}">
+                            <i class="fas fa-{{ 'check' if verification and verification.hasIdDocument else 'upload' }} mr-1"></i>
+                            Upload ID Document
+                        </p>
+                        <p class="text-xs text-gray-500 mt-0.5">National ID, Passport, or Driving Licence (JPG, PNG, PDF &middot; max 5MB)</p>
+                    </div>
+                    <!-- Step 2: Upload Selfie -->
+                    <div class="timeline-step">
+                        <div class="timeline-dot {{ 'completed' if verification and verification.hasSelfie else '' }}">
+                            {% if verification and verification.hasSelfie %}
+                            <i class="fas fa-check text-white" style="font-size:8px; position:absolute; top:2px; left:2px;"></i>
+                            {% endif %}
+                        </div>
+                        <p class="font-medium text-sm {{ 'text-green-700' if verification and verification.hasSelfie else 'text-gray-900' }}">
+                            <i class="fas fa-{{ 'check' if verification and verification.hasSelfie else 'camera' }} mr-1"></i>
+                            Upload Selfie
+                        </p>
+                        <p class="text-xs text-gray-500 mt-0.5">A clear photo of your face (JPG, PNG &middot; max 5MB)</p>
+                    </div>
+                    <!-- Step 3: Submit -->
+                    <div class="timeline-step">
+                        <div class="timeline-dot {{ 'completed' if verification and verification.verificationStatus in ['submitted', 'approved'] else ('rejected' if verification and verification.verificationStatus == 'rejected' else '') }}">
+                            {% if verification and verification.verificationStatus in ['submitted', 'approved'] %}
+                            <i class="fas fa-check text-white" style="font-size:8px; position:absolute; top:2px; left:2px;"></i>
+                            {% endif %}
+                        </div>
+                        <p class="font-medium text-sm text-gray-900">
+                            <i class="fas fa-paper-plane mr-1"></i> Submit for Review
+                        </p>
+                        <p class="text-xs text-gray-500 mt-0.5">Our Team shall review your documents</p>
+                    </div>
+                    <!-- Step 4: Verified -->
+                    <div class="timeline-step">
+                        <div class="timeline-dot">
+                        </div>
+                        <p class="font-medium text-sm text-gray-400">
+                            <i class="fas fa-badge-check mr-1"></i> Verified
+                        </p>
+                        <p class="text-xs text-gray-400 mt-0.5">Gold badge appears on your profile</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rejection Notice -->
+            {% if verification and verification.verificationStatus == 'rejected' %}
+            <div class="bg-red-50 border border-red-200 rounded-lg p-5 mb-6">
+                <div class="flex items-start gap-3">
+                    <i class="fas fa-times-circle text-red-500 text-xl mt-0.5"></i>
+                    <div>
+                        <h3 class="font-bold text-red-800 mb-1">Verification Rejected</h3>
+                        {% if verification.verificationNotes %}
+                        <p class="text-sm text-red-700 mb-2"><strong>Reason:</strong> {{ verification.verificationNotes }}</p>
+                        {% endif %}
+                        <p class="text-sm text-red-600">You may re-upload your documents and submit again.</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Pending Review Notice -->
+            {% if verification and verification.verificationStatus == 'submitted' %}
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-5 mb-6">
+                <div class="flex items-start gap-3">
+                    <i class="fas fa-clock text-blue-500 text-xl mt-0.5"></i>
+                    <div>
+                        <h3 class="font-bold text-blue-800 mb-1">Under Review</h3>
+                        <p class="text-sm text-blue-700">Your verification request has been submitted and Our Team shall review it shortly. You'll be notified once a decision is made.</p>
+                        {% if verification.submittedAt %}
+                        <p class="text-xs text-blue-500 mt-2">Submitted: {{ verification.submittedAt[:10] }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Upload Form -->
+            {% if not verification or verification.verificationStatus in ['pending', 'rejected'] %}
+            <div class="bg-white rounded-lg shadow border border-gray-200 p-6 mb-6">
+                <h2 class="text-lg font-bold mb-4"><i class="fas fa-upload text-indigo-500 mr-2"></i>Upload Documents</h2>
+                <form method="POST" enctype="multipart/form-data" class="space-y-5">
+                    <input type="hidden" name="action" value="upload">
+
+                    <!-- ID Document Upload -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-id-card text-gray-400 mr-1"></i> ID Document
+                            <span class="text-red-500">*</span>
+                        </label>
+                        <div class="upload-zone {{ 'has-file' if verification and verification.hasIdDocument else '' }}" id="id-doc-zone">
+                            <input type="file" name="id_document" accept=".jpg,.jpeg,.png,.pdf" id="id-doc-input"
+                                   onchange="updateZone('id-doc', this)">
+                            {% if verification and verification.hasIdDocument %}
+                            <i class="fas fa-check-circle text-green-500 text-2xl mb-2"></i>
+                            <p class="text-sm font-medium text-green-700" id="id-doc-label">Document uploaded</p>
+                            <p class="text-xs text-green-600 mt-1">Click to replace</p>
+                            {% else %}
+                            <i class="fas fa-cloud-upload-alt text-gray-400 text-2xl mb-2"></i>
+                            <p class="text-sm font-medium text-gray-700" id="id-doc-label">Click to upload or drag & drop</p>
+                            <p class="text-xs text-gray-500 mt-1">National ID, Passport, or Driving Licence &middot; JPG, PNG, PDF &middot; Max 5MB</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Selfie Upload -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-camera text-gray-400 mr-1"></i> Selfie Photo
+                            <span class="text-red-500">*</span>
+                        </label>
+                        <div class="upload-zone {{ 'has-file' if verification and verification.hasSelfie else '' }}" id="selfie-zone">
+                            <input type="file" name="selfie" accept=".jpg,.jpeg,.png" id="selfie-input"
+                                   onchange="updateZone('selfie', this)">
+                            {% if verification and verification.hasSelfie %}
+                            <i class="fas fa-check-circle text-green-500 text-2xl mb-2"></i>
+                            <p class="text-sm font-medium text-green-700" id="selfie-label">Selfie uploaded</p>
+                            <p class="text-xs text-green-600 mt-1">Click to replace</p>
+                            {% else %}
+                            <i class="fas fa-cloud-upload-alt text-gray-400 text-2xl mb-2"></i>
+                            <p class="text-sm font-medium text-gray-700" id="selfie-label">Click to upload or drag & drop</p>
+                            <p class="text-xs text-gray-500 mt-1">A clear photo of your face &middot; JPG, PNG &middot; Max 5MB</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 px-4 rounded-md transition">
+                        <i class="fas fa-upload mr-2"></i> Upload Documents
+                    </button>
+                </form>
+            </div>
+
+            <!-- Submit for Review -->
+            {% if verification and verification.hasIdDocument and verification.hasSelfie and verification.verificationStatus in ['pending', 'rejected'] %}
+            <div class="bg-white rounded-lg shadow border-2 border-green-200 p-6">
+                <h2 class="text-lg font-bold mb-2"><i class="fas fa-paper-plane text-green-500 mr-2"></i>Ready to Submit?</h2>
+                <p class="text-sm text-gray-600 mb-4">Both documents have been uploaded. Submit your verification request for Our Team's review.</p>
+                <form method="POST">
+                    <input type="hidden" name="action" value="submit">
+                    <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-md transition text-lg">
+                        <i class="fas fa-paper-plane mr-2"></i> Submit for Verification
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+
+            {% endif %}
+
+            {% endif %}
+            {# end of verified if/else block #}
+
+        </div>
+    </div>
+    {% include "shared/footer.html" %}
+</div>
+
+<script>
+function updateZone(type, input) {
+    const zone = document.getElementById(type + '-zone');
+    const label = document.getElementById(type + '-label');
+    if (input.files && input.files.length > 0) {
+        zone.classList.add('has-file');
+        label.textContent = input.files[0].name;
+        label.className = 'text-sm font-medium text-green-700';
+    }
+}
+
+// Drag & drop visual feedback
+document.querySelectorAll('.upload-zone').forEach(zone => {
+    zone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        zone.classList.add('dragover');
+    });
+    zone.addEventListener('dragleave', () => {
+        zone.classList.remove('dragover');
+    });
+    zone.addEventListener('drop', () => {
+        zone.classList.remove('dragover');
+    });
+});
+</script>
+{% endblock %}

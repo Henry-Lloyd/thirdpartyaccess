@@ -1,0 +1,42 @@
+{% extends "shared/base.html" %}
+
+{% block title %}Review Submitted - ThirdParty Access{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-50 flex flex-col">
+    {% include "shared/navbar.html" %}
+
+    <div class="container mx-auto px-4 py-8 flex-1">
+        <div class="max-w-md mx-auto text-center">
+            <div class="bg-white rounded-lg shadow border border-gray-200 p-8">
+                <div class="flex items-center justify-center h-16 w-16 rounded-full bg-green-100 text-green-600 mx-auto mb-4">
+                    <i class="fas fa-check-circle text-3xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold mb-2">Thank You!</h1>
+                <p class="text-gray-600 mb-6">Your verified review has been submitted successfully.</p>
+
+                <div class="bg-green-50 border border-green-200 rounded-lg px-4 py-3 mb-6">
+                    <p class="text-sm text-green-700">
+                        <i class="fas fa-shield-alt mr-1"></i>
+                        Your review is marked as <strong>Verified</strong> because it's backed by a real transaction.
+                    </p>
+                </div>
+
+                <div class="space-y-3">
+                    {% if req %}
+                    <a href="{{ url_for('reviews.provider_reviews_page', provider_id=req.providerId) }}"
+                       class="block bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition no-underline">
+                        View All Reviews
+                    </a>
+                    {% endif %}
+                    <a href="{{ url_for('main.dashboard') }}"
+                       class="block border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md hover:bg-gray-50 transition no-underline">
+                        Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% include "shared/footer.html" %}
+</div>
+{% endblock %}

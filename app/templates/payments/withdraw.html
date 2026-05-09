@@ -1,0 +1,265 @@
+{% extends "shared/base.html" %}
+{% block title %}Withdraw Funds - ThirdParty Access{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-50 flex flex-col">
+    {% include "shared/navbar.html" %}
+
+    <div class="container mx-auto px-4 py-8 flex-1">
+        <div class="max-w-2xl mx-auto">
+            <!-- Header -->
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-bold text-gray-900">
+                    <i class="fas fa-arrow-up-from-bracket text-indigo-500 mr-2"></i>Withdraw Funds
+                </h1>
+                <a href="{{ url_for('payments.wallet_page') }}"
+                   class="text-sm text-blue-600 hover:text-blue-800 no-underline">&larr; Back to Wallet</a>
+            </div>
+
+            <!-- Balance Summary -->
+            <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-sm text-indigo-600 font-medium">Available Balance</p>
+                        <p class="text-2xl font-bold text-indigo-900">MWK {{ "{:,.0f}".format(balance.availableBalance) }}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs text-indigo-500">Min. withdrawal: MWK {{ "{:,}".format(min_withdrawal) }}</p>
+                    </div>
+                </div>
+            </div>
+
+            {% if error %}
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-exclamation-circle text-red-500"></i>
+                    <p class="text-red-700 text-sm font-medium">{{ error }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Withdrawal Form -->
+            <div class="bg-white rounded-lg shadow border border-gray-200 p-6">
+                <form method="POST" id="withdraw-form">
+                    <!-- Step 1: Choose Method -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-semibold text-gray-700 mb-3">
+                            <i class="fas fa-credit-card mr-1"></i> Withdrawal Method
+                        </label>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3" id="method-selector">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="payout_method" value="airtel_money"
+                                       class="hidden peer" onchange="handleMethodChange(this.value)">
+                                <div class="peer-checked:ring-2 peer-checked:ring-red-500 peer-checked:bg-red-50 border border-gray-200 rounded-lg p-4 text-center hover:bg-gray-50 transition">
+                                    <img src="{{ url_for('static', filename='payments/airtel-money-logo.png') }}" alt="Airtel Money" class="h-8 mx-auto mb-2 object-contain">
+                                    <p class="font-semibold text-sm">Airtel Money</p>
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="payout_method" value="tnm_mpamba"
+                                       class="hidden peer" onchange="handleMethodChange(this.value)">
+                                <div class="peer-checked:ring-2 peer-checked:ring-green-500 peer-checked:bg-green-50 border border-gray-200 rounded-lg p-4 text-center hover:bg-gray-50 transition">
+                                    <img src="{{ url_for('static', filename='payments/mpamba-logo.png') }}" alt="TNM Mpamba" class="h-8 mx-auto mb-2 object-contain">
+                                    <p class="font-semibold text-sm">TNM Mpamba</p>
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="payout_method" value="bank_transfer"
+                                       class="hidden peer" onchange="handleMethodChange(this.value)">
+                                <div class="peer-checked:ring-2 peer-checked:ring-emerald-500 peer-checked:bg-emerald-50 border border-gray-200 rounded-lg p-4 text-center hover:bg-gray-50 transition">
+                                    <i class="fas fa-university text-emerald-600 text-2xl mb-2"></i>
+                                    <p class="font-semibold text-sm">Bank Transfer</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Bank Selection (hidden by default) -->
+                    <div id="bank-section" class="mb-6 hidden">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-university mr-1"></i> Select Bank
+                        </label>
+                        <select name="bank_key" id="bank_key"
+                                class="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                            <option value="">-- Choose a bank --</option>
+                            {% for key, bank in banks.items() %}
+                            <option value="{{ key }}">{{ bank.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Recipient Name -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2" for="recipient_name">
+                            <i class="fas fa-user mr-1"></i> Recipient Name
+                        </label>
+                        <input type="text" name="recipient_name" id="recipient_name" required
+                               class="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                               placeholder="Full name as registered">
+                        <p class="text-xs text-gray-500 mt-1" id="name-hint">Enter the name registered on the account</p>
+                    </div>
+
+                    <!-- Recipient Account -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2" for="recipient_account" id="account-label">
+                            <i class="fas fa-phone mr-1"></i> <span id="account-label-text">Phone Number / Account Number</span>
+                        </label>
+                        <input type="text" name="recipient_account" id="recipient_account" required
+                               class="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                               placeholder="e.g. 0991234567" id="account-input">
+                        <p class="text-xs text-gray-500 mt-1" id="account-hint">Enter mobile money number or bank account number</p>
+                    </div>
+
+                    <!-- Amount -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2" for="amount">
+                            <i class="fas fa-coins mr-1"></i> Amount (MWK)
+                        </label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-3 text-gray-500 font-medium">MWK</span>
+                            <input type="number" name="amount" id="amount" required
+                                   min="{{ min_withdrawal }}" max="{{ balance.availableBalance|int }}"
+                                   step="1"
+                                   class="w-full pl-14 pr-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                   placeholder="{{ min_withdrawal }}">
+                        </div>
+                        <div class="flex justify-between mt-1">
+                            <p class="text-xs text-gray-500">Min: MWK {{ "{:,}".format(min_withdrawal) }}</p>
+                            <p class="text-xs text-gray-500">Max: MWK {{ "{:,.0f}".format(balance.availableBalance) }}</p>
+                        </div>
+                        <!-- Quick amount buttons -->
+                        <div class="flex flex-wrap gap-2 mt-2">
+                            {% if balance.availableBalance >= min_withdrawal %}
+                            <button type="button" onclick="setAmount({{ min_withdrawal }})"
+                                    class="px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-100 transition">
+                                MWK {{ "{:,}".format(min_withdrawal) }}
+                            </button>
+                            {% endif %}
+                            {% if balance.availableBalance >= 2000 %}
+                            <button type="button" onclick="setAmount(2000)"
+                                    class="px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-100 transition">
+                                MWK 2,000
+                            </button>
+                            {% endif %}
+                            {% if balance.availableBalance >= 5000 %}
+                            <button type="button" onclick="setAmount(5000)"
+                                    class="px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-100 transition">
+                                MWK 5,000
+                            </button>
+                            {% endif %}
+                            {% if balance.availableBalance >= 10000 %}
+                            <button type="button" onclick="setAmount(10000)"
+                                    class="px-3 py-1 text-xs border border-gray-300 rounded-full hover:bg-gray-100 transition">
+                                MWK 10,000
+                            </button>
+                            {% endif %}
+                            <button type="button" onclick="setAmount({{ balance.availableBalance|int }})"
+                                    class="px-3 py-1 text-xs border border-indigo-300 text-indigo-700 rounded-full hover:bg-indigo-50 transition font-medium">
+                                Withdraw All
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Summary -->
+                    <div id="summary-section" class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6 hidden">
+                        <h3 class="font-semibold text-gray-700 mb-2 text-sm">Withdrawal Summary</h3>
+                        <div class="space-y-1 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Method:</span>
+                                <span class="font-medium" id="summary-method">-</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Recipient:</span>
+                                <span class="font-medium" id="summary-recipient">-</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Account:</span>
+                                <span class="font-medium" id="summary-account">-</span>
+                            </div>
+                            <div class="flex justify-between border-t border-gray-300 pt-2 mt-2">
+                                <span class="text-gray-700 font-semibold">Amount:</span>
+                                <span class="font-bold text-indigo-700" id="summary-amount">MWK 0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit -->
+                    <button type="submit" id="submit-btn"
+                            class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-lg transition shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            onclick="this.disabled=true; this.innerHTML='<i class=\'fas fa-spinner fa-spin\'></i> Processing Withdrawal...'; this.form.submit();">
+                        <i class="fas fa-paper-plane"></i> Confirm Withdrawal
+                    </button>
+
+                    <p class="text-xs text-gray-500 mt-3 text-center">
+                        <i class="fas fa-shield-alt mr-1"></i> Secured by PayChangu. Funds are sent directly to your account.
+                    </p>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% include "shared/footer.html" %}
+</div>
+
+<script>
+function handleMethodChange(method) {
+    const bankSection = document.getElementById('bank-section');
+    const accountLabel = document.getElementById('account-label-text');
+    const accountInput = document.getElementById('recipient_account');
+    const accountHint = document.getElementById('account-hint');
+    const nameHint = document.getElementById('name-hint');
+
+    if (method === 'bank_transfer') {
+        bankSection.classList.remove('hidden');
+        accountLabel.textContent = 'Bank Account Number';
+        accountInput.placeholder = 'e.g. 1234567890';
+        accountHint.textContent = 'Enter the bank account number';
+        nameHint.textContent = 'Enter the name as it appears on your bank account';
+    } else if (method === 'airtel_money') {
+        bankSection.classList.add('hidden');
+        accountLabel.textContent = 'Airtel Money Number';
+        accountInput.placeholder = 'e.g. 0991234567';
+        accountHint.textContent = 'Enter your Airtel Money phone number';
+        nameHint.textContent = 'Enter the name registered on your Airtel Money';
+    } else if (method === 'tnm_mpamba') {
+        bankSection.classList.add('hidden');
+        accountLabel.textContent = 'TNM Mpamba Number';
+        accountInput.placeholder = 'e.g. 0881234567';
+        accountHint.textContent = 'Enter your TNM Mpamba phone number';
+        nameHint.textContent = 'Enter the name registered on your TNM Mpamba';
+    }
+
+    updateSummary();
+}
+
+function setAmount(amount) {
+    document.getElementById('amount').value = amount;
+    updateSummary();
+}
+
+function updateSummary() {
+    const method = document.querySelector('input[name="payout_method"]:checked');
+    const name = document.getElementById('recipient_name').value;
+    const account = document.getElementById('recipient_account').value;
+    const amount = document.getElementById('amount').value;
+    const summary = document.getElementById('summary-section');
+
+    if (method && amount) {
+        summary.classList.remove('hidden');
+        const methodNames = {
+            'airtel_money': 'Airtel Money',
+            'tnm_mpamba': 'TNM Mpamba',
+            'bank_transfer': 'Bank Transfer'
+        };
+        document.getElementById('summary-method').textContent = methodNames[method.value] || method.value;
+        document.getElementById('summary-recipient').textContent = name || '-';
+        document.getElementById('summary-account').textContent = account || '-';
+        document.getElementById('summary-amount').textContent = 'MWK ' + parseInt(amount).toLocaleString();
+    }
+}
+
+// Listen for input changes to update summary
+document.getElementById('recipient_name').addEventListener('input', updateSummary);
+document.getElementById('recipient_account').addEventListener('input', updateSummary);
+document.getElementById('amount').addEventListener('input', updateSummary);
+</script>
+{% endblock %}

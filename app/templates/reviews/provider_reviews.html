@@ -1,0 +1,129 @@
+{% extends "shared/base.html" %}
+
+{% block title %}{{ provider.title }} - Reviews & Trust Score{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-50 flex flex-col">
+    {% include "shared/navbar.html" %}
+
+    <div class="container mx-auto px-4 py-8 flex-1">
+        <div class="max-w-3xl mx-auto">
+            <!-- Provider Header -->
+            <div class="bg-white rounded-lg shadow border border-gray-200 p-6 mb-6">
+                <div class="flex items-start justify-between flex-wrap gap-4">
+                    <div>
+                        <h1 class="text-2xl font-bold">{{ provider.title }}</h1>
+                        <p class="text-sm text-blue-600 font-medium">{{ provider.expertise }}</p>
+                        <p class="text-sm text-gray-500 mt-1">{{ provider.category }}</p>
+                    </div>
+
+                    <!-- Trust Score Badge -->
+                    <div class="text-center">
+                        {% if trust_score.totalReviews > 0 %}
+                        <div class="relative inline-flex items-center justify-center w-20 h-20">
+                            <svg class="w-20 h-20 -rotate-90" viewBox="0 0 36 36">
+                                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                      fill="none" stroke="#e5e7eb" stroke-width="3"/>
+                                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                      fill="none"
+                                      stroke="{% if trust_score.score >= 70 %}#16a34a{% elif trust_score.score >= 40 %}#eab308{% else %}#ef4444{% endif %}"
+                                      stroke-width="3"
+                                      stroke-dasharray="{{ trust_score.score }}, 100"/>
+                            </svg>
+                            <span class="absolute text-lg font-bold {% if trust_score.score >= 70 %}text-green-600{% elif trust_score.score >= 40 %}text-yellow-600{% else %}text-red-600{% endif %}">
+                                {{ trust_score.score }}
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1 font-medium">Trust Score</p>
+                        {% else %}
+                        <div class="bg-gray-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto">
+                            <span class="text-gray-400 text-sm">No<br>reviews</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Stats Row -->
+                {% if trust_score.totalReviews > 0 %}
+                <div class="mt-4 flex flex-wrap gap-4 text-sm">
+                    <div class="flex items-center gap-1">
+                        <div class="flex text-yellow-400">
+                            {% for i in range(1, 6) %}
+                            <i class="fas fa-star{% if i > trust_score.averageRating|round %}-half-alt{% endif %} text-xs {% if i <= trust_score.averageRating|round %}text-yellow-400{% else %}text-gray-300{% endif %}"></i>
+                            {% endfor %}
+                        </div>
+                        <span class="font-semibold">{{ trust_score.averageRating }}</span>
+                    </div>
+                    <span class="text-gray-400">|</span>
+                    <span class="text-gray-600">{{ trust_score.totalReviews }} verified review{{ 's' if trust_score.totalReviews != 1 }}</span>
+                    <span class="text-gray-400">|</span>
+                    <span class="inline-flex items-center gap-1 text-green-600">
+                        <i class="fas fa-check-circle text-xs"></i> All payment-verified
+                    </span>
+                </div>
+
+                <!-- Rating Breakdown -->
+                <div class="mt-4 space-y-1">
+                    {% set breakdown = trust_score.breakdown %}
+                    {% for star_count in [5, 4, 3, 2, 1] %}
+                    {% set key = ['oneStar', 'twoStar', 'threeStar', 'fourStar', 'fiveStar'][star_count - 1] %}
+                    {% set count = breakdown[key] %}
+                    {% set pct = (count / trust_score.totalReviews * 100) if trust_score.totalReviews > 0 else 0 %}
+                    <div class="flex items-center gap-2 text-xs">
+                        <span class="w-8 text-right text-gray-600">{{ star_count }}<i class="fas fa-star text-yellow-400 ml-0.5"></i></span>
+                        <div class="flex-1 bg-gray-200 rounded-full h-2">
+                            <div class="bg-yellow-400 h-2 rounded-full" style="width: {{ pct }}%"></div>
+                        </div>
+                        <span class="w-6 text-gray-500">{{ count }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Reviews List -->
+            {% if reviews|length == 0 %}
+            <div class="bg-white rounded-lg shadow border border-gray-200 p-8 text-center">
+                <div class="text-4xl mb-3"><i class="far fa-comment-dots text-gray-300"></i></div>
+                <p class="text-gray-500">No reviews yet. Be the first to leave one!</p>
+            </div>
+            {% else %}
+            <h2 class="text-lg font-bold mb-4">All Reviews ({{ reviews|length }})</h2>
+            <div class="space-y-4">
+                {% for review in reviews %}
+                <div class="bg-white rounded-lg shadow border border-gray-200 p-5">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <p class="font-semibold text-gray-900">{{ review.reviewerName }}</p>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <div class="flex text-yellow-400">
+                                    {% for i in range(1, 6) %}
+                                    <i class="fas fa-star text-xs {% if i <= review.rating %}text-yellow-400{% else %}text-gray-300{% endif %}"></i>
+                                    {% endfor %}
+                                </div>
+                                {% if review.isVerifiedTransaction %}
+                                <span class="inline-flex items-center gap-0.5 text-xs text-green-600 bg-green-50 px-1.5 py-0.5 rounded">
+                                    <i class="fas fa-check-circle"></i> Verified
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <span class="text-xs text-gray-400">{{ review.createdAt[:10] }}</span>
+                    </div>
+                    {% if review.comment %}
+                    <p class="text-gray-600 text-sm mt-2">{{ review.comment }}</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <a href="{{ url_for('providers.search_page') }}"
+               class="inline-block mt-6 border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md hover:bg-gray-50 transition no-underline text-sm">
+                &larr; Back to Search
+            </a>
+        </div>
+    </div>
+    {% include "shared/footer.html" %}
+</div>
+{% endblock %}

@@ -1,0 +1,176 @@
+{% extends "shared/base.html" %}
+{% block title %}Withdrawal Details - ThirdParty Access{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-50 flex flex-col">
+    {% include "shared/navbar.html" %}
+
+    <div class="container mx-auto px-4 py-8 flex-1">
+        <div class="max-w-2xl mx-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-bold text-gray-900">
+                    <i class="fas fa-file-invoice text-indigo-500 mr-2"></i>Withdrawal Details
+                </h1>
+                <a href="{{ url_for('payments.payout_history_page') }}"
+                   class="text-sm text-blue-600 hover:text-blue-800 no-underline">&larr; Back to History</a>
+            </div>
+
+            <div class="bg-white rounded-lg shadow border border-gray-200 p-6">
+                <!-- Status Banner -->
+                {% if payout.status == 'successful' %}
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 flex items-center gap-3">
+                    <i class="fas fa-check-circle text-green-500 text-2xl"></i>
+                    <div>
+                        <p class="font-bold text-green-800">Withdrawal Completed</p>
+                        <p class="text-sm text-green-600">Funds have been sent to your account successfully.</p>
+                    </div>
+                </div>
+                {% elif payout.status in ('pending', 'processing') %}
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6 flex items-center gap-3">
+                    <i class="fas fa-spinner fa-spin text-yellow-500 text-2xl"></i>
+                    <div>
+                        <p class="font-bold text-yellow-800">Processing Withdrawal</p>
+                        <p class="text-sm text-yellow-600">Your withdrawal is being processed. This usually takes a few minutes.</p>
+                    </div>
+                </div>
+                {% elif payout.status == 'failed' %}
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-center gap-3">
+                    <i class="fas fa-times-circle text-red-500 text-2xl"></i>
+                    <div>
+                        <p class="font-bold text-red-800">Withdrawal Failed</p>
+                        <p class="text-sm text-red-600">
+                            {{ payout.failureReason or 'The withdrawal could not be completed. The amount has been returned to your balance.' }}
+                        </p>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Amount -->
+                <div class="text-center mb-6 py-4 border-b border-gray-200">
+                    <p class="text-sm text-gray-500 font-medium">Withdrawal Amount</p>
+                    <p class="text-4xl font-bold text-gray-900">MWK {{ "{:,.0f}".format(payout.amount) }}</p>
+                </div>
+
+                <!-- Details Grid -->
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="text-gray-500 text-sm">Method</span>
+                        <span class="font-medium">
+                            {% if payout.payoutMethod == 'airtel_money' %}
+                            <i class="fas fa-mobile-alt text-red-500 mr-1"></i> Airtel Money
+                            {% elif payout.payoutMethod == 'tnm_mpamba' %}
+                            <i class="fas fa-mobile-alt text-blue-500 mr-1"></i> TNM Mpamba
+                            {% else %}
+                            <i class="fas fa-university text-green-600 mr-1"></i> Bank Transfer
+                            {% endif %}
+                        </span>
+                    </div>
+
+                    {% if payout.bankName %}
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="text-gray-500 text-sm">Bank</span>
+                        <span class="font-medium">{{ payout.bankName }}</span>
+                    </div>
+                    {% endif %}
+
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="text-gray-500 text-sm">Recipient</span>
+                        <span class="font-medium">{{ payout.recipientName }}</span>
+                    </div>
+
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="text-gray-500 text-sm">
+                            {{ 'Account Number' if payout.payoutMethod == 'bank_transfer' else 'Phone Number' }}
+                        </span>
+                        <span class="font-medium font-mono">{{ payout.recipientAccount }}</span>
+                    </div>
+
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="text-gray-500 text-sm">Charge ID</span>
+                        <span class="font-mono text-xs text-gray-700">{{ payout.chargeId }}</span>
+                    </div>
+
+                    {% if payout.paychanguRefId %}
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="text-gray-500 text-sm">PayChangu Ref</span>
+                        <span class="font-mono text-xs text-gray-700">{{ payout.paychanguRefId }}</span>
+                    </div>
+                    {% endif %}
+
+                    {% if payout.paychanguTransId %}
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="text-gray-500 text-sm">Transaction ID</span>
+                        <span class="font-mono text-xs text-gray-700">{{ payout.paychanguTransId }}</span>
+                    </div>
+                    {% endif %}
+
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="text-gray-500 text-sm">Status</span>
+                        {% if payout.status == 'successful' %}
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <i class="fas fa-check-circle mr-1"></i> Completed
+                        </span>
+                        {% elif payout.status in ('pending', 'processing') %}
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            <i class="fas fa-spinner fa-spin mr-1"></i> Processing
+                        </span>
+                        {% elif payout.status == 'failed' %}
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            <i class="fas fa-times-circle mr-1"></i> Failed
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            {{ payout.status|capitalize }}
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span class="text-gray-500 text-sm">Initiated</span>
+                        <span class="text-gray-700">{{ payout.createdAt[:19].replace('T', ' ') if payout.createdAt else 'N/A' }}</span>
+                    </div>
+
+                    <div class="flex justify-between items-center py-2">
+                        <span class="text-gray-500 text-sm">Last Updated</span>
+                        <span class="text-gray-700">{{ payout.updatedAt[:19].replace('T', ' ') if payout.updatedAt else 'N/A' }}</span>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="mt-6 flex gap-3">
+                    {% if payout.status in ('pending', 'processing') %}
+                    <button onclick="refreshStatus('{{ payout.id }}')" id="refresh-btn"
+                            class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition text-sm">
+                        <i class="fas fa-sync-alt mr-1"></i> Refresh Status
+                    </button>
+                    {% endif %}
+                    <a href="{{ url_for('payments.wallet_page') }}"
+                       class="border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md hover:bg-gray-50 transition no-underline text-sm">
+                        <i class="fas fa-wallet mr-1"></i> Back to Wallet
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% include "shared/footer.html" %}
+</div>
+
+<script>
+async function refreshStatus(payoutId) {
+    const btn = document.getElementById('refresh-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Checking...';
+
+    try {
+        const resp = await fetch(`/api/wallet/payout/${payoutId}/verify`, { method: 'POST' });
+        const data = await resp.json();
+        // Reload to show updated status
+        window.location.reload();
+    } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-sync-alt mr-1"></i> Refresh Status';
+        alert('Failed to check status. Please try again.');
+    }
+}
+</script>
+{% endblock %}

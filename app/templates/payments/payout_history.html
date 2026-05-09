@@ -1,0 +1,107 @@
+{% extends "shared/base.html" %}
+{% block title %}Withdrawal History - ThirdParty Access{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-50 flex flex-col">
+    {% include "shared/navbar.html" %}
+
+    <div class="container mx-auto px-4 py-8 flex-1">
+        <div class="max-w-4xl mx-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-bold text-gray-900">
+                    <i class="fas fa-history text-indigo-500 mr-2"></i>Withdrawal History
+                </h1>
+                <a href="{{ url_for('payments.wallet_page') }}"
+                   class="text-sm text-blue-600 hover:text-blue-800 no-underline">&larr; Back to Wallet</a>
+            </div>
+
+            <!-- Balance Summary Bar -->
+            <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-6 flex justify-between items-center">
+                <div>
+                    <span class="text-sm text-indigo-600 font-medium">Available Balance:</span>
+                    <span class="text-xl font-bold text-indigo-900 ml-2">MWK {{ "{:,.0f}".format(balance.availableBalance) }}</span>
+                </div>
+                {% if balance.availableBalance >= 1000 %}
+                <a href="{{ url_for('payments.withdraw_page') }}"
+                   class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition text-sm no-underline">
+                    <i class="fas fa-arrow-up-from-bracket mr-1"></i> Withdraw
+                </a>
+                {% endif %}
+            </div>
+
+            {% if payouts %}
+            <div class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th class="px-4 py-3 text-left font-medium text-gray-600">Date</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-600">Method</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-600">Recipient</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-600">Amount</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-600">Status</th>
+                                <th class="px-4 py-3 text-left font-medium text-gray-600"></th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            {% for p in payouts %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-3 text-gray-700">{{ p.createdAt[:10] if p.createdAt else 'N/A' }}</td>
+                                <td class="px-4 py-3 text-gray-700">
+                                    {% if p.payoutMethod == 'airtel_money' %}
+                                    <span class="text-red-600"><i class="fas fa-mobile-alt mr-1"></i> Airtel</span>
+                                    {% elif p.payoutMethod == 'tnm_mpamba' %}
+                                    <span class="text-blue-600"><i class="fas fa-mobile-alt mr-1"></i> TNM</span>
+                                    {% else %}
+                                    <span class="text-green-600"><i class="fas fa-university mr-1"></i> Bank</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3">
+                                    <p class="text-gray-900 font-medium">{{ p.recipientName }}</p>
+                                    <p class="text-xs text-gray-500">{{ p.recipientAccount }}</p>
+                                </td>
+                                <td class="px-4 py-3 font-semibold text-gray-900">MWK {{ "{:,.0f}".format(p.amount) }}</td>
+                                <td class="px-4 py-3">
+                                    {% if p.status == 'successful' %}
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        <i class="fas fa-check-circle mr-1"></i> Completed
+                                    </span>
+                                    {% elif p.status in ('pending', 'processing') %}
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                        <i class="fas fa-spinner fa-spin mr-1"></i> Processing
+                                    </span>
+                                    {% elif p.status == 'failed' %}
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                        <i class="fas fa-times-circle mr-1"></i> Failed
+                                    </span>
+                                    {% else %}
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                        {{ p.status|capitalize }}
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3">
+                                    <a href="{{ url_for('payments.payout_detail_page', payout_id=p.id) }}"
+                                       class="text-blue-600 hover:text-blue-800 text-xs no-underline">Details &rarr;</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% else %}
+            <div class="bg-white rounded-lg shadow border border-gray-200 p-8 text-center">
+                <div class="text-gray-400 text-4xl mb-3"><i class="fas fa-piggy-bank"></i></div>
+                <p class="text-gray-500">No withdrawals yet.</p>
+                <a href="{{ url_for('payments.withdraw_page') }}"
+                   class="inline-block mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-6 rounded-md transition no-underline text-sm">
+                    Make Your First Withdrawal
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% include "shared/footer.html" %}
+</div>
+{% endblock %}

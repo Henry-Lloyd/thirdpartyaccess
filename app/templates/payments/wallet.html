@@ -1,0 +1,183 @@
+{% extends "shared/base.html" %}
+{% block title %}My Wallet - ThirdParty Access{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-gray-50 flex flex-col">
+    {% include "shared/navbar.html" %}
+
+    <div class="container mx-auto px-4 py-8 flex-1">
+        <div class="max-w-4xl mx-auto">
+            <!-- Header -->
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-bold text-gray-900">
+                    <i class="fas fa-wallet text-indigo-500 mr-2"></i>My Wallet
+                </h1>
+                <a href="{{ url_for('main.dashboard') }}"
+                   class="text-sm text-blue-600 hover:text-blue-800 no-underline">&larr; Dashboard</a>
+            </div>
+
+            <!-- Balance Card -->
+            <div class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl shadow-lg p-6 mb-8">
+                <div class="flex items-center gap-2 mb-1">
+                    <p class="text-indigo-200 text-sm font-medium">Available Balance</p>
+                    <span class="bg-white/20 text-xs px-2 py-0.5 rounded-full">Your {{ "%.0f"|format(split.providerPercentage) }}% Share</span>
+                </div>
+                <p class="text-4xl font-bold mb-4">MWK {{ "{:,.0f}".format(balance.availableBalance) }}</p>
+
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="bg-white/15 rounded-lg px-3 py-2">
+                        <p class="text-xs text-indigo-200">Your Earnings ({{ "%.0f"|format(split.providerPercentage) }}%)</p>
+                        <p class="text-lg font-bold">MWK {{ "{:,.0f}".format(balance.totalEarnings) }}</p>
+                    </div>
+                    <div class="bg-white/15 rounded-lg px-3 py-2">
+                        <p class="text-xs text-indigo-200">Withdrawn</p>
+                        <p class="text-lg font-bold">MWK {{ "{:,.0f}".format(balance.totalWithdrawn) }}</p>
+                    </div>
+                    <div class="bg-white/15 rounded-lg px-3 py-2">
+                        <p class="text-xs text-indigo-200">Pending</p>
+                        <p class="text-lg font-bold">MWK {{ "{:,.0f}".format(balance.pendingWithdrawals) }}</p>
+                    </div>
+                </div>
+
+                <!-- Withdraw Button -->
+                <div class="mt-6">
+                    {% if balance.availableBalance >= min_withdrawal %}
+                    <a href="{{ url_for('payments.withdraw_page') }}"
+                       class="inline-flex items-center gap-2 bg-white text-indigo-700 font-bold py-3 px-8 rounded-lg hover:bg-indigo-50 transition shadow no-underline">
+                        <i class="fas fa-arrow-up-from-bracket"></i> Withdraw Funds
+                    </a>
+                    {% else %}
+                    <div class="inline-flex items-center gap-2 bg-white/30 text-white/80 font-bold py-3 px-8 rounded-lg cursor-not-allowed">
+                        <i class="fas fa-arrow-up-from-bracket"></i> Withdraw Funds
+                    </div>
+                    <p class="text-xs text-indigo-200 mt-2">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Minimum withdrawal: MWK {{ "{:,}".format(min_withdrawal) }}.
+                        {% if balance.availableBalance < min_withdrawal %}
+                        You need MWK {{ "{:,.0f}".format(min_withdrawal - balance.availableBalance) }} more to withdraw.
+                        {% endif %}
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- How Earnings Work -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+                <h2 class="text-lg font-bold text-blue-900 mb-3">
+                    <i class="fas fa-chart-pie text-blue-500 mr-2"></i>How Earnings Work
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+                    <div class="bg-white rounded-lg p-4 border border-blue-100 text-center">
+                        <div class="text-2xl mb-1"><i class="fas fa-money-bill-wave text-green-500"></i></div>
+                        <p class="text-xs text-gray-500">Seeker Pays</p>
+                        <p class="font-bold text-gray-800">100% of Fee</p>
+                    </div>
+                    <div class="bg-white rounded-lg p-4 border border-blue-100 text-center">
+                        <div class="text-2xl mb-1"><i class="fas fa-building text-indigo-500"></i></div>
+                        <p class="text-xs text-gray-500">Platform Gets</p>
+                        <p class="font-bold text-gray-800">{{ "%.0f"|format(split.platformPercentage) }}% (Main Balance)</p>
+                    </div>
+                    <div class="bg-white rounded-lg p-4 border border-blue-100 text-center">
+                        <div class="text-2xl mb-1"><i class="fas fa-user-tie text-green-600"></i></div>
+                        <p class="text-xs text-gray-500">You Get</p>
+                        <p class="font-bold text-green-700">{{ "%.0f"|format(split.providerPercentage) }}% (Your Wallet)</p>
+                    </div>
+                </div>
+                <p class="text-xs text-blue-700">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    When a seeker pays for access, the revenue is automatically split {{ "%.0f"|format(split.platformPercentage) }}/{{ "%.0f"|format(split.providerPercentage) }} (platform/provider). Your {{ "%.0f"|format(split.providerPercentage) }}% share is credited to your wallet and can be withdrawn anytime your balance meets the minimum of MWK {{ "{:,}".format(min_withdrawal) }}.
+                </p>
+            </div>
+
+            <!-- Supported Payout Methods -->
+            <div class="bg-white rounded-lg shadow border border-gray-200 p-6 mb-8">
+                <h2 class="text-lg font-bold text-gray-900 mb-4">
+                    <i class="fas fa-credit-card text-gray-400 mr-2"></i>Supported Withdrawal Methods
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="flex items-center gap-3 bg-red-50 border border-red-200 rounded-lg p-4">
+                        <img src="{{ url_for('static', filename='payments/airtel-money-logo.png') }}" alt="Airtel Money" class="h-10 w-auto object-contain">
+                        <div>
+                            <p class="font-semibold text-gray-900">Airtel Money</p>
+                            <p class="text-xs text-gray-500">Instant to your Airtel wallet</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 bg-green-50 border border-green-200 rounded-lg p-4">
+                        <img src="{{ url_for('static', filename='payments/mpamba-logo.png') }}" alt="TNM Mpamba" class="h-10 w-auto object-contain">
+                        <div>
+                            <p class="font-semibold text-gray-900">TNM Mpamba</p>
+                            <p class="text-xs text-gray-500">Instant to your TNM wallet</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                        <div class="bg-emerald-100 rounded-full p-2">
+                            <i class="fas fa-university text-emerald-600 text-lg"></i>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-gray-900">Bank Transfer</p>
+                            <p class="text-xs text-gray-500">7 Malawi banks supported</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Withdrawals -->
+            <div class="bg-white rounded-lg shadow border border-gray-200 p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold text-gray-900">
+                        <i class="fas fa-history text-gray-400 mr-2"></i>Recent Withdrawals
+                    </h2>
+                    {% if recent_payouts %}
+                    <a href="{{ url_for('payments.payout_history_page') }}"
+                       class="text-sm text-blue-600 hover:text-blue-800 no-underline">View All &rarr;</a>
+                    {% endif %}
+                </div>
+
+                {% if recent_payouts %}
+                <div class="space-y-3">
+                    {% for p in recent_payouts %}
+                    <a href="{{ url_for('payments.payout_detail_page', payout_id=p.id) }}"
+                       class="block bg-gray-50 hover:bg-gray-100 rounded-lg p-4 transition no-underline">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="font-semibold text-gray-900">MWK {{ "{:,.0f}".format(p.amount) }}</p>
+                                <p class="text-sm text-gray-500">
+                                    {{ p.payoutMethodDisplay }} &middot; {{ p.recipientAccount }}
+                                </p>
+                                <p class="text-xs text-gray-400 mt-1">{{ p.createdAt[:10] if p.createdAt else '' }}</p>
+                            </div>
+                            <div>
+                                {% if p.status == 'successful' %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    <i class="fas fa-check-circle mr-1"></i> Completed
+                                </span>
+                                {% elif p.status in ('pending', 'processing') %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                    <i class="fas fa-spinner fa-spin mr-1"></i> Processing
+                                </span>
+                                {% elif p.status == 'failed' %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                    <i class="fas fa-times-circle mr-1"></i> Failed
+                                </span>
+                                {% else %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                    {{ p.status|capitalize }}
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <div class="text-gray-400 text-3xl mb-2"><i class="fas fa-piggy-bank"></i></div>
+                    <p class="text-gray-500 text-sm">No withdrawals yet. Start withdrawing once you have sufficient balance!</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% include "shared/footer.html" %}
+</div>
+{% endblock %}
