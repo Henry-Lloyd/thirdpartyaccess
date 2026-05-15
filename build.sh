@@ -1,21 +1,28 @@
 #!/usr/bin/env bash
-# Build Script for ThirdParty Access — platform-agnostic (works on any host)
+# Build Script for ThirdParty Access — Render/Postgres safe
 set -o errexit
 
 # Install Python dependencies
 pip install --upgrade pip
 pip install -r requirements.txt
 
-# Create data directory for SQLite database
+# Optional local-dev SQLite directory
 mkdir -p data
 
-# Seed database with test accounts (only if DB doesn't exist yet)
-if [ ! -f "data/database.sqlite" ]; then
-    echo "First deploy — seeding database with test accounts..."
-    python scripts/seed_database.py
-    echo "Database seeded successfully!"
-else
-    echo "Database already exists, skipping seed."
-    # Still initialize DB to run any new table migrations
-    python -c "from app import create_app; app = create_app(); print('DB schema updated.')"
+# Apply Alembic migrations when explicitly enabled (recommended on Render)
+if [ "${RUN_DB_MIGRATIONS:-1}" = "1" ]; then
+  echo "Applying database migrations..."
+  flask --app run.py db upgrade
 fi
+
+# Optional seed hook for non-production environments only
+if [ "${SEED_DATABASE_ON_DEPLOY:-0}" = "1" ]; then
+  if [ "${FLASK_ENV:-development}" = "production" ]; then
+    echo "SEED_DATABASE_ON_DEPLOY is ignored in production for safety."
+  else
+    echo "Seeding database (non-production)..."
+    python scripts/seed_database.py
+  fi
+fi
+
+echo "Build completed successfully."

@@ -1,13 +1,20 @@
 """ThirdParty Access - Flask Application Factory."""
 
+import sys
+
 from flask import Flask, session
 from config import Config
 from app.database import init_db, get_db
+from app.extensions import db, migrate
 
 
 def create_app(config_class=Config):
     app = Flask(__name__, static_folder="static", template_folder="templates")
     app.config.from_object(config_class)
+
+    # Initialize SQLAlchemy + Flask-Migrate (migration management)
+    db.init_app(app)
+    migrate.init_app(app, db)
 
     if app.config.get("FLASK_ENV") == "production" and app.config.get("SECRET_KEY") == "dev-insecure-change-me":
         raise RuntimeError("SECRET_KEY must be set in production environment.")
@@ -15,9 +22,15 @@ def create_app(config_class=Config):
     if not app.config.get("PAYCHANGU_SECRET_KEY") or not app.config.get("PAYCHANGU_PUBLIC_KEY"):
         print("WARNING: PayChangu keys not configured. Payments will not work.")
 
-    # Initialize database on first request
+    # SQLite local bootstrap only. Production PostgreSQL schema must come from migrations.
     with app.app_context():
-        init_db()
+        if app.config.get("DB_BACKEND") == "sqlite":
+            if "db" in sys.argv:
+                app.logger.info("Skipping runtime SQLite bootstrap during Flask-Migrate command.")
+            else:
+                init_db()
+        else:
+            app.logger.info("PostgreSQL backend detected. Run migrations with 'flask --app run.py db upgrade'.")
 
     @app.before_request
     def enforce_permanent_session():

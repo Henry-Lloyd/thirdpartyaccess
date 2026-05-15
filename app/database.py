@@ -1,10 +1,69 @@
 """Database connection, schema initialization, and backup utilities."""
 
-import sqlite3
 import os
+import re
+import sqlite3
 import shutil
 from datetime import datetime, timezone
+
+import psycopg2
+from psycopg2.extras import RealDictCursor
 from flask import g, current_app
+
+
+class PostgresCompatConnection:
+    """SQLite-like adapter over psycopg2 connection.
+
+    This preserves existing service-layer SQL usage (`?` placeholders and
+    `db.execute(...).fetch*()` patterns) while using PostgreSQL in production.
+    """
+
+    def __init__(self, dsn: str):
+        self._conn = psycopg2.connect(dsn, cursor_factory=RealDictCursor)
+
+    @staticmethod
+    def _adapt_sql(sql: str) -> str:
+        adapted = sql
+
+        # sqlite placeholders -> psycopg placeholders
+        adapted = adapted.replace("?", "%s")
+
+        # sqlite upsert flavor used in this project
+        adapted = re.sub(r"\bINSERT\s+OR\s+IGNORE\b", "INSERT", adapted, flags=re.IGNORECASE)
+        if "INSERT" in adapted.upper() and "OR IGNORE" not in adapted.upper() and "ON CONFLICT" not in adapted.upper():
+            # No-op for most inserts; specific migrations handle ON CONFLICT explicitly.
+            pass
+
+        return adapted
+
+    def execute(self, sql: str, params=None):
+        cur = self._conn.cursor()
+        cur.execute(self._adapt_sql(sql), params or ())
+        return cur
+
+    def executescript(self, script: str):
+        cur = self._conn.cursor()
+        statements = [stmt.strip() for stmt in script.split(";") if stmt.strip()]
+        for stmt in statements:
+            cur.execute(self._adapt_sql(stmt))
+        return cur
+
+    def commit(self):
+        self._conn.commit()
+
+    def close(self):
+        self._conn.close()
+
+
+def _create_sqlite_connection(db_path: str):
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA journal_mode = WAL")
+    conn.execute("PRAGMA busy_timeout = 5000")
+    conn.execute("PRAGMA synchronous = NORMAL")
+    return conn
 
 
 def get_db(close=False):
@@ -16,30 +75,39 @@ def get_db(close=False):
         return None
 
     if "db" not in g:
-        db_path = current_app.config["DATABASE_PATH"]
-        os.makedirs(os.path.dirname(db_path), exist_ok=True)
-        g.db = sqlite3.connect(db_path)
-        g.db.row_factory = sqlite3.Row
-        g.db.execute("PRAGMA foreign_keys = ON")
-        g.db.execute("PRAGMA journal_mode = WAL")
-        g.db.execute("PRAGMA busy_timeout = 5000")
-        g.db.execute("PRAGMA synchronous = NORMAL")
+        backend = current_app.config.get("DB_BACKEND", "sqlite")
+        if backend == "postgresql":
+            database_url = current_app.config.get("DATABASE_URL")
+            if not database_url:
+                raise RuntimeError("DATABASE_URL is required when DB_BACKEND=postgresql")
+            g.db = PostgresCompatConnection(database_url)
+        else:
+            db_path = current_app.config["DATABASE_PATH"]
+            g.db = _create_sqlite_connection(db_path)
+
     return g.db
 
 
-def get_db_direct(db_path):
+def get_db_direct(db_path=None):
     """Get a direct database connection (outside of Flask request context)."""
-    os.makedirs(os.path.dirname(db_path), exist_ok=True)
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
-    conn.execute("PRAGMA journal_mode = WAL")
-    conn.execute("PRAGMA busy_timeout = 5000")
-    return conn
+    backend = current_app.config.get("DB_BACKEND", "sqlite")
+    if backend == "postgresql":
+        database_url = current_app.config.get("DATABASE_URL")
+        if not database_url:
+            raise RuntimeError("DATABASE_URL is required when DB_BACKEND=postgresql")
+        return PostgresCompatConnection(database_url)
+
+    if not db_path:
+        db_path = current_app.config["DATABASE_PATH"]
+    return _create_sqlite_connection(db_path)
 
 
 def init_db():
-    """Initialize all database tables if they don't already exist."""
+    """Initialize all database tables if they don't already exist (SQLite local mode only)."""
+    if current_app.config.get("DB_BACKEND") == "postgresql":
+        # Production PostgreSQL schema is managed by Flask-Migrate/Alembic.
+        return
+
     db = get_db()
 
     db.executescript("""
@@ -390,9 +458,12 @@ def _migrate_create_password_reset_tokens(db):
 # ═════════════════════════=═════════════════════════════════════
 
 def create_backup(app=None) -> str:
-    """Create a timestamped backup of the database file."""
+    """Create a timestamped backup of the SQLite database file."""
     if app is None:
         app = current_app._get_current_object()
+
+    if app.config.get("DB_BACKEND") == "postgresql":
+        raise RuntimeError("SQLite file backup is unavailable in PostgreSQL mode. Use pg_dump on Render Postgres.")
 
     db_path = app.config["DATABASE_PATH"]
     backup_dir = app.config.get("BACKUP_DIR", os.path.join(os.path.dirname(db_path), "backups"))
@@ -441,14 +512,13 @@ EXPORT_TABLES = [
 def export_all_data_json(app=None) -> dict:
     """Export ALL data from ALL tables as a JSON-serializable dict.
 
-    This is your insurance policy — run this before redeploying or
-    switching hosts. The resulting JSON contains every row from every
-    table so that nothing is lost.
+    This helper is SQLite-oriented for local/dev usage.
     """
-    import json as _json
-
     if app is None:
         app = current_app._get_current_object()
+
+    if app.config.get("DB_BACKEND") == "postgresql":
+        raise RuntimeError("JSON export helper is SQLite-oriented. Use PostgreSQL backup tooling in production.")
 
     db_path = app.config["DATABASE_PATH"]
     conn = sqlite3.connect(db_path)
@@ -475,18 +545,13 @@ def export_all_data_json(app=None) -> dict:
 def import_all_data_json(data: dict, app=None, merge: bool = True) -> dict:
     """Import ALL data from a JSON export dict into the database.
 
-    Args:
-        data: The JSON dict from export_all_data_json().
-        app: Flask app (defaults to current_app).
-        merge: If True (default), uses INSERT OR REPLACE so existing rows
-               are updated and new rows are added. If False, clears tables
-               before inserting.
-
-    Returns:
-        Summary dict with row counts per table.
+    SQLite-oriented helper for local/dev usage.
     """
     if app is None:
         app = current_app._get_current_object()
+
+    if app.config.get("DB_BACKEND") == "postgresql":
+        raise RuntimeError("JSON import helper is SQLite-oriented and disabled for PostgreSQL production.")
 
     db_path = app.config["DATABASE_PATH"]
     conn = sqlite3.connect(db_path)

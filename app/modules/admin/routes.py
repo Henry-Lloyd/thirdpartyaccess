@@ -442,8 +442,13 @@ def admin_backup_sqlite():
     if err:
         return err
 
-    import os
     from app.database import create_backup
+
+    if current_app.config.get("DB_BACKEND") == "postgresql":
+        return jsonify({
+            "error": "SQLite backup endpoint is disabled in PostgreSQL mode.",
+            "hint": "Use Render Postgres backups/pg_dump for production backups."
+        }), 400
 
     backup_path = create_backup()
 
